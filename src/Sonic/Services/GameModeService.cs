@@ -5,6 +5,12 @@ using Sonic.Core.Abstractions;
 
 namespace Sonic.Services;
 
+/// <summary>A Steam app id with its display name.</summary>
+public sealed record SteamApp(int Id, string Name)
+{
+    public override string ToString() => Name;
+}
+
 /// <summary>
 /// Pauses downloads while a Steam game is running so they don't eat bandwidth (or disk) during play.
 /// Steam publishes the running game's id in HKCU\Software\Valve\Steam\RunningAppID; Sonic only reads it.
@@ -120,10 +126,30 @@ public sealed partial class GameModeService : ObservableObject, IDisposable
         }
     }
 
-    private static string ReadGameName(int appId)
+    private static string ReadGameName(int appId) => GetSteamAppName(appId) ?? "a Steam game";
+
+    /// <summary>The app's name as Steam stores it locally, or null when unknown.</summary>
+    public static string? GetSteamAppName(int appId)
     {
         using var key = Registry.CurrentUser.OpenSubKey($@"{SteamKey}\Apps\{appId}");
-        return key?.GetValue("Name") as string is { Length: > 0 } name ? name : "a Steam game";
+        return key?.GetValue("Name") as string is { Length: > 0 } name ? name : null;
+    }
+
+    /// <summary>Installed Steam apps that have a name (games and tools), sorted by name.</summary>
+    public static IReadOnlyList<SteamApp> GetInstalledSteamApps()
+    {
+        var list = new List<SteamApp>();
+        using var apps = Registry.CurrentUser.OpenSubKey($@"{SteamKey}\Apps");
+        if (apps is null) return list;
+        foreach (var sub in apps.GetSubKeyNames())
+        {
+            if (!int.TryParse(sub, out var id)) continue;
+            using var key = apps.OpenSubKey(sub);
+            if (key?.GetValue("Name") is string { Length: > 0 } name && key.GetValue("Installed") is int installed && installed != 0)
+                list.Add(new SteamApp(id, name));
+        }
+
+        return list.OrderBy(a => a.Name, StringComparer.CurrentCultureIgnoreCase).ToList();
     }
 
     public void Dispose() => _timer.Dispose();

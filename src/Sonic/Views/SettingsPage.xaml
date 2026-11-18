@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:core="using:Sonic.Core.Models"
     xmlns:helpers="using:Sonic.Helpers"
+    xmlns:services="using:Sonic.Services"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     xmlns:vm="using:Sonic.ViewModels"
     NavigationCacheMode="Required">
@@ -129,10 +130,37 @@
                         <FontIcon Glyph="&#xE945;" />
                     </toolkit:SettingsExpander.HeaderIcon>
                     <toolkit:SettingsExpander.Items>
-                        <toolkit:SettingsCard Description="{x:Bind ViewModel.GameModeIgnoredText, Mode=OneWay}" Header="Pause downloads while gaming">
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <HyperlinkButton Command="{x:Bind ViewModel.ResetGameModeIgnoredCommand}" Content="Reset non-game list" />
-                                <ToggleSwitch AutomationProperties.Name="Pause downloads while gaming" IsOn="{x:Bind ViewModel.PauseWhileGaming, Mode=TwoWay}" />
+                        <toolkit:SettingsCard Description="While a Steam game is running, new downloads wait so your connection stays free. You can still start them with Download anyway." Header="Pause downloads while gaming">
+                            <ToggleSwitch AutomationProperties.Name="Pause downloads while gaming" IsOn="{x:Bind ViewModel.PauseWhileGaming, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            HorizontalContentAlignment="Stretch"
+                            ContentAlignment="Vertical"
+                            Description="Steam apps that aren't games (wallpapers, tools, music players). They never pause downloads."
+                            Header="Not games"
+                            IsEnabled="{x:Bind ViewModel.PauseWhileGaming, Mode=OneWay}">
+                            <StackPanel HorizontalAlignment="Stretch" Spacing="6">
+                                <ItemsControl AutomationProperties.Name="Ignored Steam apps" ItemsSource="{x:Bind ViewModel.IgnoredApps}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="services:SteamApp">
+                                            <Grid Padding="0,2" ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock VerticalAlignment="Center" Text="{x:Bind Name}" />
+                                                <Button Grid.Column="1" AutomationProperties.Name="{x:Bind Name}" Click="OnRemoveIgnoredAppClick" Style="{StaticResource SubtleButtonStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="Remove: pause downloads for this app again">
+                                                    <FontIcon FontSize="13" Glyph="&#xE74D;" />
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="None: every Steam app pauses downloads." Visibility="{x:Bind helpers:Bind.Collapsed(ViewModel.HasIgnoredApps), Mode=OneWay}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <ComboBox MinWidth="260" AutomationProperties.Name="Steam app to ignore" ItemsSource="{x:Bind ViewModel.AddableApps}" PlaceholderText="Choose an installed Steam app" SelectedItem="{x:Bind ViewModel.AppToIgnore, Mode=TwoWay}" />
+                                    <Button AutomationProperties.Name="Add to not games" Command="{x:Bind ViewModel.AddIgnoredAppCommand}" Content="Add" />
+                                </StackPanel>
                             </StackPanel>
                         </toolkit:SettingsCard>
                         <toolkit:SettingsCard Description="Downloads that failed because of the network are retried when the connection comes back or zapret starts." Header="Retry when the connection returns">

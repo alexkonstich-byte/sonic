@@ -43,7 +43,7 @@
                     AutomationProperties.Name="Not a game"
                     Command="{x:Bind ViewModel.NotAGameCommand}"
                     Content="This isn't a game, never pause for it"
-                    ToolTipService.ToolTip="For Steam tools like Wallpaper Engine. Undo in Settings › Smart downloads." />
+                    ToolTipService.ToolTip="For Steam tools like Wallpaper Engine. Edit the list in Settings › Smart downloads › Not games." />
             </InfoBar.Content>
         </InfoBar>
 

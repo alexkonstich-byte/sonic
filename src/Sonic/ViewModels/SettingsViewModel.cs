@@ -211,18 +211,47 @@ public sealed partial class SettingsViewModel : ObservableObject, INavigationAwa
 
     partial void OnPauseWhileGamingChanged(bool value) => Save(s => s.PauseWhileGaming = value);
 
-    public string GameModeIgnoredText => _settings.Current.GameModeIgnoredApps.Count switch
+    // Steam apps that never pause downloads (tools such as Wallpaper Engine).
+    public ObservableCollection<SteamApp> IgnoredApps { get; } = [];
+    public ObservableCollection<SteamApp> AddableApps { get; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(AddIgnoredAppCommand))]
+    private SteamApp? _appToIgnore;
+
+    [ObservableProperty] private bool _hasIgnoredApps;
+
+    private void LoadIgnoredApps()
     {
-        0 => "While a Steam game is running, new downloads wait so your connection stays free. You can still start them with Download anyway.",
-        var n => $"While a Steam game is running, new downloads wait. {n} Steam app(s) are marked as not a game (Wallpaper Engine is by default).",
-    };
+        var ignored = _settings.Current.GameModeIgnoredApps;
+        IgnoredApps.Clear();
+        foreach (var id in ignored)
+            IgnoredApps.Add(new SteamApp(id, GameModeService.GetSteamAppName(id) ?? (id == 431960 ? "Wallpaper Engine" : $"Steam app {id}")));
+        HasIgnoredApps = IgnoredApps.Count > 0;
+
+        AddableApps.Clear();
+        foreach (var app in GameModeService.GetInstalledSteamApps().Where(a => !ignored.Contains(a.Id))) AddableApps.Add(app);
+        AppToIgnore = null;
+    }
+
+    private bool CanAddIgnoredApp() => AppToIgnore is not null;
+
+    [RelayCommand(CanExecute = nameof(CanAddIgnoredApp))]
+    private async Task AddIgnoredAppAsync()
+    {
+        if (AppToIgnore is not { } app) return;
+        await SaveAsync(s =>
+        {
+            if (!s.GameModeIgnoredApps.Contains(app.Id)) s.GameModeIgnoredApps.Add(app.Id);
+        });
+        LoadIgnoredApps();
+    }
 
     [RelayCommand]
-    private async Task ResetGameModeIgnoredAsync()
+    private async Task RemoveIgnoredAppAsync(SteamApp app)
     {
-        await SaveAsync(s => s.GameModeIgnoredApps = [431960]);
-        OnPropertyChanged(nameof(GameModeIgnoredText));
-        _notifications.ShowInfo("Game mode", "The list of non-game Steam apps was reset to Wallpaper Engine only.");
+        await SaveAsync(s => s.GameModeIgnoredApps.Remove(app.Id));
+        LoadIgnoredApps();
     }
     partial void OnAutoRetryOnReconnectChanged(bool value) => Save(s => s.AutoRetryOnReconnect = value);
     partial void OnWarnAlreadyDownloadedChanged(bool value) => Save(s => s.WarnAlreadyDownloaded = value);
@@ -705,6 +734,7 @@ public sealed partial class SettingsViewModel : ObservableObject, INavigationAwa
         UpdateFeed = s.UpdateFeed ?? string.Empty;
         DiscordClientId = s.DiscordClientId ?? string.Empty;
         PauseWhileGaming = s.PauseWhileGaming;
+        LoadIgnoredApps();
         AutoRetryOnReconnect = s.AutoRetryOnReconnect;
         WarnAlreadyDownloaded = s.WarnAlreadyDownloaded;
         Presets.Clear();

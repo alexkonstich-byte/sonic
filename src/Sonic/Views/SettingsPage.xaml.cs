@@ -48,4 +48,9 @@ public sealed partial class SettingsPage : Page
     {
         if ((sender as Microsoft.UI.Xaml.FrameworkElement)?.Tag is Sonic.Core.Models.DownloadPreset preset) ViewModel.DeletePresetCommand.Execute(preset);
     }
+
+    private void OnRemoveIgnoredAppClick(object sender, RoutedEventArgs e)
+    {
+        if ((sender as FrameworkElement)?.Tag is Sonic.Services.SteamApp app) ViewModel.RemoveIgnoredAppCommand.Execute(app);
+    }
 }
