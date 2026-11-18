@@ -22,6 +22,9 @@ public sealed partial class DownloadsViewModel(
     [RelayCommand]
     private void DownloadAnyway() => GameMode.Override();
 
+    [RelayCommand]
+    private Task NotAGame() => GameMode.IgnoreCurrentAppAsync();
+
     public string ConcurrencyText => $"Up to {settings.Current.MaxConcurrentDownloads} at a time";
 
     public void Refresh() => OnPropertyChanged(nameof(ConcurrencyText));

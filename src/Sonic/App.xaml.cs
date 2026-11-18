@@ -177,6 +177,7 @@ public partial class App : Application
         builder.Services.AddTransient<SourceSearchViewModel>();
         builder.Services.AddTransient<ToolInstallViewModel>();
         builder.Services.AddTransient<BatchDownloadViewModel>();
+        builder.Services.AddTransient<PlaylistDownloadViewModel>();
         return builder.Build();
     }
 

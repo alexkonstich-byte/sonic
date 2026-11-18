@@ -37,6 +37,14 @@
             <InfoBar.ActionButton>
                 <Button AutomationProperties.Name="Download anyway" Command="{x:Bind ViewModel.DownloadAnywayCommand}" Content="Download anyway" />
             </InfoBar.ActionButton>
+            <InfoBar.Content>
+                <HyperlinkButton
+                    Margin="0,0,0,8"
+                    AutomationProperties.Name="Not a game"
+                    Command="{x:Bind ViewModel.NotAGameCommand}"
+                    Content="This isn't a game, never pause for it"
+                    ToolTipService.ToolTip="For Steam tools like Wallpaper Engine. Undo in Settings › Smart downloads." />
+            </InfoBar.Content>
         </InfoBar>
 
         <CommandBar

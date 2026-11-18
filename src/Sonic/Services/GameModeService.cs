@@ -47,6 +47,19 @@ public sealed partial class GameModeService : ObservableObject, IDisposable
 
     public void Start() => _timer.Change(TimeSpan.FromSeconds(2), PollInterval);
 
+    /// <summary>"Not a game": never pause for this Steam app again (e.g. a tool or wallpaper app).</summary>
+    public async Task IgnoreCurrentAppAsync()
+    {
+        var appId = ReadRunningAppId();
+        if (appId <= 0) return;
+        await _settings.UpdateAsync(s =>
+        {
+            if (!s.GameModeIgnoredApps.Contains(appId)) s.GameModeIgnoredApps.Add(appId);
+        });
+        _logger.LogInformation("Game mode: app {AppId} ({Name}) marked as not a game", appId, GameName);
+        Poll();
+    }
+
     /// <summary>"Download anyway": ignore the current game until it exits.</summary>
     public void Override()
     {
@@ -61,6 +74,7 @@ public sealed partial class GameModeService : ObservableObject, IDisposable
         try
         {
             var appId = ReadRunningAppId();
+            if (_settings.Current.GameModeIgnoredApps.Contains(appId)) appId = 0;
             var name = appId > 0 ? ReadGameName(appId) : null;
             if (appId == 0) _overriddenAppId = 0;
             var overridden = appId > 0 && appId == _overriddenAppId;

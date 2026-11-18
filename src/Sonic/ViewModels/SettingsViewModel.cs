@@ -210,6 +210,20 @@ public sealed partial class SettingsViewModel : ObservableObject, INavigationAwa
     public System.Collections.ObjectModel.ObservableCollection<DownloadPreset> Presets { get; } = [];
 
     partial void OnPauseWhileGamingChanged(bool value) => Save(s => s.PauseWhileGaming = value);
+
+    public string GameModeIgnoredText => _settings.Current.GameModeIgnoredApps.Count switch
+    {
+        0 => "While a Steam game is running, new downloads wait so your connection stays free. You can still start them with Download anyway.",
+        var n => $"While a Steam game is running, new downloads wait. {n} Steam app(s) are marked as not a game (Wallpaper Engine is by default).",
+    };
+
+    [RelayCommand]
+    private async Task ResetGameModeIgnoredAsync()
+    {
+        await SaveAsync(s => s.GameModeIgnoredApps = [431960]);
+        OnPropertyChanged(nameof(GameModeIgnoredText));
+        _notifications.ShowInfo("Game mode", "The list of non-game Steam apps was reset to Wallpaper Engine only.");
+    }
     partial void OnAutoRetryOnReconnectChanged(bool value) => Save(s => s.AutoRetryOnReconnect = value);
     partial void OnWarnAlreadyDownloadedChanged(bool value) => Save(s => s.WarnAlreadyDownloaded = value);
 

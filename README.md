@@ -160,6 +160,8 @@ embedded browsers, and Sonic never sees your password.
 - **Game mode**: while a Steam game runs (Steam's `RunningAppID`, trusted only while the Steam client is running), new
   downloads wait; the Downloads page shows the game and a **Download anyway** button that lifts the pause until that
   game exits.
+  Steam tools that aren't games (Wallpaper Engine by default) are ignored; the banner's "This isn't a game" link adds
+  the current app to that list (reset in Settings › Smart downloads).
 - **Auto-retry**: downloads that failed with network errors in the last 6 hours are retried when Windows reports the
   network back, and YouTube failures are retried when zapret starts.
 - **Taskbar progress**: the taskbar button shows overall progress (yellow while paused).
@@ -213,6 +215,12 @@ Settings › Integrations › Spotify. Sonic uses the Client Credentials flow to
 track metadata in the metadata editor. Spotify-curated/algorithmic playlists are not available to third-party apps.
 **Sonic never accesses Spotify audio.** For playlist entries that aren't in your library, "Find source" searches YouTube and
 lets you choose the upload to download; Spotify's track information is then written into the file.
+
+**Download all** (playlist page) handles a whole playlist: pick a folder, Sonic scans it (and subfolders) plus your
+library for songs that already exist — by tags or "Artist - Title" file names, ignoring version suffixes such as
+"- Remastered 2011", with a length check — and links those instead of downloading them again. The rest is searched on
+YouTube (closest length, skipping karaoke/cover/live uploads) and queued into that folder; songs that weren't found are
+listed so you can use Find source. Downloads can be paused and resumed on the Downloads page.
 
 ## Legal
 

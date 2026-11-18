@@ -129,8 +129,11 @@
                         <FontIcon Glyph="&#xE945;" />
                     </toolkit:SettingsExpander.HeaderIcon>
                     <toolkit:SettingsExpander.Items>
-                        <toolkit:SettingsCard Description="While a Steam game is running, new downloads wait so your connection stays free. You can still start them with Download anyway." Header="Pause downloads while gaming">
-                            <ToggleSwitch AutomationProperties.Name="Pause downloads while gaming" IsOn="{x:Bind ViewModel.PauseWhileGaming, Mode=TwoWay}" />
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.GameModeIgnoredText, Mode=OneWay}" Header="Pause downloads while gaming">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <HyperlinkButton Command="{x:Bind ViewModel.ResetGameModeIgnoredCommand}" Content="Reset non-game list" />
+                                <ToggleSwitch AutomationProperties.Name="Pause downloads while gaming" IsOn="{x:Bind ViewModel.PauseWhileGaming, Mode=TwoWay}" />
+                            </StackPanel>
                         </toolkit:SettingsCard>
                         <toolkit:SettingsCard Description="Downloads that failed because of the network are retried when the connection comes back or zapret starts." Header="Retry when the connection returns">
                             <ToggleSwitch AutomationProperties.Name="Retry when the connection returns" IsOn="{x:Bind ViewModel.AutoRetryOnReconnect, Mode=TwoWay}" />

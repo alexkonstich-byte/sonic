@@ -199,6 +199,14 @@ public sealed partial class PlaylistDetailViewModel : ObservableObject, INavigat
         }
     }
 
+    /// <summary>Downloads every song that isn't in the chosen folder or the library yet.</summary>
+    [RelayCommand]
+    private async Task DownloadAllAsync()
+    {
+        var queued = await _dialogs.PlaylistDownloadAsync(_playlistId, Name);
+        if (queued > 0) _navigation.NavigateTo(PageKey.Downloads);
+    }
+
     [RelayCommand]
     private async Task MatchLibraryAsync()
     {

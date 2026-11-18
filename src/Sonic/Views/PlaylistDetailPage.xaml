@@ -50,6 +50,11 @@
         <!-- Actions -->
         <StackPanel Grid.Row="1" Margin="36,16,36,8" Spacing="12">
             <CommandBar HorizontalAlignment="Left" Background="Transparent" DefaultLabelPosition="Right" IsDynamicOverflowEnabled="True">
+                <AppBarButton AutomationProperties.Name="Download all" Command="{x:Bind ViewModel.DownloadAllCommand}" Label="Download all" ToolTipService.ToolTip="Download every song that isn't in the chosen folder yet">
+                    <AppBarButton.Icon>
+                        <FontIcon Glyph="&#xE896;" />
+                    </AppBarButton.Icon>
+                </AppBarButton>
                 <AppBarButton Command="{x:Bind ViewModel.PlayAllCommand}" Label="Play">
                     <AppBarButton.Icon>
                         <FontIcon Glyph="&#xE768;" />

@@ -28,6 +28,9 @@ public interface IDialogService
 
     /// <summary>Opens the batch (list) download dialog, optionally prefilled. Returns the number of queued downloads.</summary>
     Task<int> BatchDownloadAsync(string? filePath = null, string? text = null);
+
+    /// <summary>"Download all" for a playlist; returns how many songs were queued.</summary>
+    Task<int> PlaylistDownloadAsync(int playlistId, string playlistName);
 }
 
 public sealed class DialogService(IWindowService windows, IServiceProvider services) : IDialogService
@@ -167,6 +170,14 @@ public sealed class DialogService(IWindowService windows, IServiceProvider servi
         if (filePath is not null) await vm.LoadFileAsync(filePath);
         else if (!string.IsNullOrWhiteSpace(text)) vm.LoadText(text);
         await ShowAsync(new BatchDownloadDialog(vm));
+        return vm.QueuedCount;
+    }
+
+    public async Task<int> PlaylistDownloadAsync(int playlistId, string playlistName)
+    {
+        var vm = services.GetRequiredService<PlaylistDownloadViewModel>();
+        vm.Initialize(playlistId, playlistName);
+        await ShowAsync(new PlaylistDownloadDialog(vm));
         return vm.QueuedCount;
     }
 

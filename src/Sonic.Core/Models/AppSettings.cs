@@ -28,6 +28,11 @@ public sealed class AppSettings
     /// <summary>Pause downloads while a Steam game is running.</summary>
     public bool PauseWhileGaming { get; set; } = true;
 
+    /// <summary>
+    /// Steam apps that aren't games and never pause downloads. Wallpaper Engine (431960) runs all day through Steam.
+    /// </summary>
+    public List<int> GameModeIgnoredApps { get; set; } = [431960];
+
     /// <summary>Retry downloads that failed because of the network when the connection comes back (or zapret starts).</summary>
     public bool AutoRetryOnReconnect { get; set; } = true;
 
@@ -142,6 +147,7 @@ public sealed class AppSettings
         copy.MusicFolders = [.. MusicFolders];
         copy.RecentFolders = [.. RecentFolders];
         copy.Presets = [.. Presets];
+        copy.GameModeIgnoredApps = [.. GameModeIgnoredApps];
         return copy;
     }
 }
