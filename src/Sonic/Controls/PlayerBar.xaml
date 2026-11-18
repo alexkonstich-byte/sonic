@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Sonic.Controls.PlayerBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Sonic.Controls"
+    xmlns:core="using:Sonic.Core.Models">
+
+    <UserControl.Resources>
+        <Style x:Key="PlayerButtonStyle" TargetType="Button" BasedOn="{StaticResource IconButtonStyle}">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+        </Style>
+        <Style x:Key="PlayerToggleStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+    </UserControl.Resources>
+
+    <Border
+        Padding="16,8"
+        Background="{ThemeResource LayerOnMicaBaseAltFillColorSecondaryBrush}"
+        BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+        BorderThickness="0,1,0,0">
+        <Grid ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="200" />
+                <ColumnDefinition Width="2*" MaxWidth="640" />
+                <ColumnDefinition Width="*" MinWidth="200" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Now playing -->
+            <Grid ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <controls:ArtworkImage Width="52" Height="52" DecodeSize="104" GlyphSize="20" ImageCornerRadius="6" Source="{x:Bind Player.Artwork, Mode=OneWay}" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Style="{StaticResource ItemTitleTextStyle}" FontWeight="SemiBold" Text="{x:Bind Player.Title, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind Player.Title, Mode=OneWay}" />
+                    <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind Player.Artist, Mode=OneWay}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Transport + seek -->
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                <StackPanel HorizontalAlignment="Center" Orientation="Horizontal" Spacing="6">
+                    <ToggleButton AutomationProperties.Name="Shuffle" IsChecked="{x:Bind Player.Shuffle, Mode=TwoWay}" Style="{StaticResource PlayerToggleStyle}" ToolTipService.ToolTip="Shuffle">
+                        <FontIcon FontSize="14" Glyph="&#xE8B1;" />
+                    </ToggleButton>
+                    <Button AutomationProperties.Name="Previous" Command="{x:Bind Player.PreviousCommand}" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Previous">
+                        <FontIcon FontSize="14" Glyph="&#xE892;" />
+                    </Button>
+                    <Button
+                        Width="40"
+                        Height="40"
+                        Padding="0"
+                        AutomationProperties.Name="{x:Bind Player.PlayPauseLabel, Mode=OneWay}"
+                        Command="{x:Bind Player.TogglePlayCommand}"
+                        CornerRadius="20"
+                        Style="{StaticResource AccentButtonStyle}"
+                        ToolTipService.ToolTip="{x:Bind Player.PlayPauseLabel, Mode=OneWay}">
+                        <FontIcon FontSize="16" Glyph="{x:Bind Player.PlayPauseGlyph, Mode=OneWay}" />
+                    </Button>
+                    <Button AutomationProperties.Name="Next" Command="{x:Bind Player.NextCommand}" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Next">
+                        <FontIcon FontSize="14" Glyph="&#xE893;" />
+                    </Button>
+                    <Button
+                        AutomationProperties.Name="{x:Bind Player.RepeatLabel, Mode=OneWay}"
+                        Command="{x:Bind Player.CycleRepeatCommand}"
+                        Style="{StaticResource PlayerButtonStyle}"
+                        ToolTipService.ToolTip="{x:Bind Player.RepeatLabel, Mode=OneWay}">
+                        <FontIcon FontSize="14" Foreground="{x:Bind RepeatBrush(Player.IsRepeatOn), Mode=OneWay}" Glyph="{x:Bind Player.RepeatGlyph, Mode=OneWay}" />
+                    </Button>
+                </StackPanel>
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="44" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="44" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock VerticalAlignment="Center" Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind Player.PositionText, Mode=OneWay}" TextAlignment="Right" />
+                    <Slider
+                        Grid.Column="1"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="Seek"
+                        IsThumbToolTipEnabled="False"
+                        Maximum="{x:Bind Player.Duration, Mode=OneWay}"
+                        Minimum="0"
+                        StepFrequency="1"
+                        Value="{x:Bind Player.Position, Mode=TwoWay}" />
+                    <TextBlock Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind Player.DurationText, Mode=OneWay}" />
+                </Grid>
+            </StackPanel>
+
+            <!-- Queue, volume, close -->
+            <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
+                <Button AutomationProperties.Name="Queue" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Queue">
+                    <FontIcon FontSize="14" Glyph="&#xE90B;" />
+                    <Button.Flyout>
+                        <Flyout Placement="TopEdgeAlignedRight">
+                            <StackPanel Width="360" Spacing="8">
+                                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Queue" />
+                                <ListView
+                                    MaxHeight="420"
+                                    IsItemClickEnabled="True"
+                                    ItemClick="OnQueueItemClick"
+                                    ItemsSource="{x:Bind Player.Queue}"
+                                    SelectedIndex="{x:Bind Player.CurrentIndex, Mode=OneWay}"
+                                    SelectionMode="Single">
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="core:Track">
+                                            <StackPanel Padding="0,4">
+                                                <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Title}" />
+                                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind DisplayArtist}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
+                <Button AutomationProperties.Name="Show in folder" Command="{x:Bind Player.RevealCurrentCommand}" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Show in folder">
+                    <FontIcon FontSize="14" Glyph="&#xE838;" />
+                </Button>
+                <Button AutomationProperties.Name="Mute" Command="{x:Bind Player.ToggleMuteCommand}" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Mute">
+                    <FontIcon FontSize="14" Glyph="{x:Bind Player.VolumeGlyph, Mode=OneWay}" />
+                </Button>
+                <Slider
+                    Width="110"
+                    VerticalAlignment="Center"
+                    AutomationProperties.Name="Volume"
+                    Maximum="100"
+                    Minimum="0"
+                    Value="{x:Bind Player.Volume, Mode=TwoWay}" />
+                <Button AutomationProperties.Name="Close player" Command="{x:Bind Player.CloseCommand}" Style="{StaticResource PlayerButtonStyle}" ToolTipService.ToolTip="Stop and close">
+                    <FontIcon FontSize="12" Glyph="&#xE711;" />
+                </Button>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

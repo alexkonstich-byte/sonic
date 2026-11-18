@@ -1,0 +1,695 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Sonic.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:core="using:Sonic.Core.Models"
+    xmlns:helpers="using:Sonic.Helpers"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:vm="using:Sonic.ViewModels"
+    NavigationCacheMode="Required">
+
+    <Page.Resources>
+        <Style x:Key="SettingsSectionHeaderStyle" TargetType="TextBlock" BasedOn="{StaticResource BodyStrongTextBlockStyle}">
+            <Setter Property="Margin" Value="1,28,0,6" />
+        </Style>
+        <Style x:Key="TokenButtonStyle" TargetType="Button" BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Margin="{StaticResource PageHeaderMargin}" Style="{StaticResource PageTitleTextStyle}" Text="Settings" />
+
+        <ScrollViewer x:Name="Scroller" Grid.Row="1">
+            <StackPanel MaxWidth="{StaticResource SettingsMaxWidth}" Padding="36,0,36,36" HorizontalAlignment="Stretch" Spacing="{StaticResource SettingsCardSpacing}">
+
+                <!-- General -->
+                <TextBlock x:Name="GeneralHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="General" />
+                <toolkit:SettingsCard Description="Choose how Sonic looks." Header="App theme">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE790;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ComboBox MinWidth="200" ItemsSource="{x:Bind ViewModel.ThemeOptions}" SelectedItem="{x:Bind ViewModel.SelectedTheme, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Description="Start Sonic automatically when you sign in to Windows." Header="Launch at sign-in">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE7E8;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.LaunchAtSignIn, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsExpander Description="What happens when Sonic opens." Header="Startup">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE8FC;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Page to open">
+                            <ComboBox MinWidth="200" ItemsSource="{x:Bind ViewModel.StartupPageOptions}" SelectedItem="{x:Bind ViewModel.SelectedStartupPage, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Downloads interrupted by closing Sonic continue from where they stopped." Header="Resume unfinished downloads">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ResumeDownloadsOnStartup, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Ask before closing while downloads are running">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ConfirmExit, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsCard Description="Show a Windows notification when a download finishes while Sonic is in the background." Header="Notifications">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xEA8F;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.ShowNotifications, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsExpander Description="Tray icon, clipboard, keyboard shortcuts and browser links." Header="Desktop integration">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE7F4;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="Copy a YouTube, SoundCloud, VK… link anywhere and Sonic offers to download it." Header="Watch the clipboard for links">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.WatchClipboard, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Closing the window keeps Sonic running in the notification area so downloads continue. Exit from the tray icon." Header="Close to tray">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.MinimizeToTray, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.HotkeyStatus, Mode=OneWay}" Header="Global shortcuts: download the copied link">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.GlobalHotkey, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Lets websites and bookmarks send links to Sonic with sonic://download?url=…" Header="Open sonic:// links">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ProtocolHandler, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.Share.StatusText, Mode=OneWay}" Header="Show Sonic in the Windows Share menu">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ProgressRing Width="16" Height="16" IsActive="{x:Bind ViewModel.Share.IsBusy, Mode=OneWay}" />
+                                <Button AutomationProperties.Name="Add to Share menu" Command="{x:Bind ViewModel.Share.EnableCommand}" Content="Add" Visibility="{x:Bind helpers:Bind.Collapsed(ViewModel.Share.IsRegistered), Mode=OneWay}" />
+                                <Button AutomationProperties.Name="Remove from Share menu" Command="{x:Bind ViewModel.Share.DisableCommand}" Content="Remove" Visibility="{x:Bind ViewModel.Share.IsRegistered, Mode=OneWay}" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.Discord.Status, Mode=OneWay}" Header="Show what I'm listening to on Discord">
+                            <ToggleSwitch AutomationProperties.Name="Show what I'm listening to on Discord" IsOn="{x:Bind ViewModel.DiscordPresence, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical" Description="Create an application named Sonic in the Discord Developer Portal (New Application) and paste its Application ID here. Discord shows the application's name, e.g. Listening to Sonic." Header="Discord Application ID" IsEnabled="{x:Bind ViewModel.DiscordPresence, Mode=OneWay}">
+                            <StackPanel Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox MinWidth="260" AutomationProperties.Name="Discord Application ID" InputScope="Number" PlaceholderText="123456789012345678" Text="{x:Bind ViewModel.DiscordClientId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <HyperlinkButton Command="{x:Bind ViewModel.OpenDiscordPortalCommand}" Content="Open Developer Portal" />
+                                </StackPanel>
+                                <TextBlock Foreground="{ThemeResource SystemFillColorCriticalBrush}" Text="{x:Bind ViewModel.DiscordIdError, Mode=OneWay}" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.DiscordIdError), Mode=OneWay}" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Add a bookmark with this address; clicking it on any video page sends the page to Sonic." Header="“Send to Sonic” browser bookmark">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Command="{x:Bind ViewModel.CopyBookmarkletCommand}" CommandParameter="audio" Content="Copy (audio)" />
+                                <Button Command="{x:Bind ViewModel.CopyBookmarkletCommand}" CommandParameter="video" Content="Copy (video)" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <!-- Downloads -->
+                <TextBlock x:Name="DownloadsHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="Downloads" />
+                <toolkit:SettingsCard Description="{x:Bind ViewModel.DownloadDirectory, Mode=OneWay}" Header="Download folder">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE8B7;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Command="{x:Bind ViewModel.OpenDownloadDirectoryCommand}" Content="Open" />
+                        <Button Command="{x:Bind ViewModel.BrowseDownloadDirectoryCommand}" Content="Change…" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
+                <toolkit:SettingsExpander Description="Game mode, automatic retries, duplicate warnings and presets." Header="Smart downloads">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE945;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="While a Steam game is running, new downloads wait so your connection stays free. You can still start them with Download anyway." Header="Pause downloads while gaming">
+                            <ToggleSwitch AutomationProperties.Name="Pause downloads while gaming" IsOn="{x:Bind ViewModel.PauseWhileGaming, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Downloads that failed because of the network are retried when the connection comes back or zapret starts." Header="Retry when the connection returns">
+                            <ToggleSwitch AutomationProperties.Name="Retry when the connection returns" IsOn="{x:Bind ViewModel.AutoRetryOnReconnect, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Mark links you've already downloaded and ask before downloading them again." Header="Warn about already downloaded links">
+                            <ToggleSwitch AutomationProperties.Name="Warn about already downloaded links" IsOn="{x:Bind ViewModel.WarnAlreadyDownloaded, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical" Description="Save presets from the Home page with the save button next to Apply preset." Header="Presets">
+                            <StackPanel HorizontalAlignment="Stretch" Spacing="4">
+                                <ItemsControl ItemsSource="{x:Bind ViewModel.Presets}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="core:DownloadPreset">
+                                            <Grid Padding="0,2" ColumnSpacing="8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock VerticalAlignment="Center" Text="{x:Bind Name}" />
+                                                <Button Grid.Column="1" AutomationProperties.Name="Delete preset" Click="OnDeletePresetClick" Style="{StaticResource SubtleButtonStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="Delete">
+                                                    <FontIcon FontSize="13" Glyph="&#xE74D;" />
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <HyperlinkButton Command="{x:Bind ViewModel.RestorePresetsCommand}" Content="Restore built-in presets" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsExpander Description="How downloaded files are named. Use / to create folders." Header="File names">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE8AC;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.FilenameTemplate, Mode=OneWay}" FontFamily="Cascadia Mono, Consolas" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical">
+                            <StackPanel HorizontalAlignment="Stretch" Spacing="10">
+                                <TextBox
+                                    FontFamily="Cascadia Mono, Consolas"
+                                    Header="Template"
+                                    Text="{x:Bind ViewModel.FilenameTemplate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock
+                                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                    Text="{x:Bind ViewModel.FilenameTemplateError, Mode=OneWay}"
+                                    TextWrapping="Wrap"
+                                    Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.FilenameTemplateError), Mode=OneWay}" />
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Button Command="{x:Bind ViewModel.InsertTokenCommand}" CommandParameter="{}{artist}" Content="{}{artist}" Style="{StaticResource TokenButtonStyle}" />
+                                    <Button Command="{x:Bind ViewModel.InsertTokenCommand}" CommandParameter="{}{title}" Content="{}{title}" Style="{StaticResource TokenButtonStyle}" />
+                                    <Button Command="{x:Bind ViewModel.InsertTokenCommand}" CommandParameter="{}{album}" Content="{}{album}" Style="{StaticResource TokenButtonStyle}" />
+                                    <Button Command="{x:Bind ViewModel.InsertTokenCommand}" CommandParameter="{}{album_artist}" Content="{}{album_artist}" Style="{StaticResource TokenButtonStyle}" />
+                                    <Button Command="{x:Bind ViewModel.InsertTokenCommand}" CommandParameter="{}{track}" Content="{}{track}" Style="{StaticResource TokenButtonStyle}" />
+                                    <Button Command="{x:Bind ViewModel.InsertTokenCommand}" CommandParameter="{}{year}" Content="{}{year}" Style="{StaticResource TokenButtonStyle}" />
+                                    <Button Command="{x:Bind ViewModel.InsertTokenCommand}" CommandParameter="{}{uploader}" Content="{}{uploader}" Style="{StaticResource TokenButtonStyle}" />
+                                </StackPanel>
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" TextWrapping="Wrap">
+                                    <Run Text="Example: " /><Run FontFamily="Cascadia Mono, Consolas" Text="{x:Bind ViewModel.FilenamePreview, Mode=OneWay}" />
+                                </TextBlock>
+                                <HyperlinkButton Padding="0" Command="{x:Bind ViewModel.ResetFilenameTemplateCommand}" Content="Reset to default" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsCard Description="Downloads that start at the same time. Others wait in the queue." Header="Simultaneous downloads">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE9F5;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <NumberBox
+                        MinWidth="120"
+                        Maximum="8"
+                        Minimum="1"
+                        SpinButtonPlacementMode="Inline"
+                        Value="{x:Bind ViewModel.MaxConcurrentDownloads, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Description="Used for new downloads. You can change it per download on the Home page." Header="Default format">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE8D6;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ComboBox MinWidth="200" ItemsSource="{x:Bind ViewModel.FormatOptions}" SelectedItem="{x:Bind ViewModel.SelectedFormat, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Description="Bitrate for lossy formats (MP3, M4A, Opus, OGG)." Header="Default quality">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE9E9;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ComboBox MinWidth="200" ItemsSource="{x:Bind ViewModel.QualityOptions}" SelectedItem="{x:Bind ViewModel.SelectedQuality, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsExpander Description="Tags and album art written into each downloaded file." Header="Metadata">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE8EC;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Embed album art">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.EmbedArtwork, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Looks the song up on iTunes and Deezer and uses the real album cover (and fills an empty album and year) when the match is confident. Otherwise the video thumbnail is used." Header="Find the real album cover" IsEnabled="{x:Bind ViewModel.EmbedArtwork, Mode=OneWay}">
+                            <ToggleSwitch AutomationProperties.Name="Find the real album cover" IsOn="{x:Bind ViewModel.FindAlbumArt, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Video thumbnails are center-cropped so they look right as album covers." Header="Crop artwork to a square" IsEnabled="{x:Bind ViewModel.EmbedArtwork, Mode=OneWay}">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.CropArtwork, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Remove “(Official Video)”, “[Lyrics]” and similar text from titles." Header="Clean up titles">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.CleanTitles, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsCard Description="Retry automatically after network errors and rate limits." Header="Automatic retries">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE72C;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <NumberBox
+                        MinWidth="120"
+                        Maximum="5"
+                        Minimum="0"
+                        SpinButtonPlacementMode="Inline"
+                        Value="{x:Bind ViewModel.MaxRetries, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+
+                <toolkit:SettingsExpander Description="Speed limit and proxy for downloads and Sonic's own connections." Header="Network">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE968;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="Per download, in KB/s. 0 means unlimited." Header="Speed limit">
+                            <NumberBox
+                                MinWidth="160"
+                                LargeChange="1024"
+                                Minimum="0"
+                                SmallChange="256"
+                                SpinButtonPlacementMode="Inline"
+                                Value="{x:Bind ViewModel.SpeedLimitKBps, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical" Header="Proxy">
+                            <StackPanel Spacing="6">
+                                <TextBox
+                                    AutomationProperties.Name="Proxy address"
+                                    PlaceholderText="Empty = direct connection. Example: socks5://127.0.0.1:1080"
+                                    Text="{x:Bind ViewModel.ProxyUrl, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock
+                                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                    Text="{x:Bind ViewModel.ProxyError, Mode=OneWay}"
+                                    TextWrapping="Wrap"
+                                    Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.ProxyError), Mode=OneWay}" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsExpander Description="Uses the community SponsorBlock database for YouTube videos." Header="SponsorBlock">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE8C6;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="Cut intros, skits and talking out of music videos when saving audio." Header="Music: remove non-music parts">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.SponsorBlockAudio, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Sponsor messages, self-promotion and “like and subscribe” reminders." Header="Videos: sponsor segments">
+                            <ComboBox MinWidth="260" ItemsSource="{x:Bind ViewModel.SponsorBlockModes}" SelectedItem="{x:Bind ViewModel.SelectedSponsorBlockVideo, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <!-- Video -->
+                <TextBlock x:Name="VideoHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="Video" />
+                <toolkit:SettingsCard Description="{x:Bind ViewModel.VideoDirectory, Mode=OneWay}" Header="Video folder">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE8B7;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Command="{x:Bind ViewModel.OpenVideoDirectoryCommand}" Content="Open" />
+                        <Button Command="{x:Bind ViewModel.BrowseVideoDirectoryCommand}" Content="Change…" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
+                <toolkit:SettingsExpander Description="How downloaded videos are named. Use / to create folders." Header="Video file names">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE8AC;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <TextBlock FontFamily="Cascadia Mono, Consolas" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.VideoFilenameTemplate, Mode=OneWay}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical">
+                            <StackPanel HorizontalAlignment="Stretch" Spacing="10">
+                                <TextBox FontFamily="Cascadia Mono, Consolas" Header="Template" Text="{x:Bind ViewModel.VideoFilenameTemplate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock
+                                    Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                    Text="{x:Bind ViewModel.VideoFilenameTemplateError, Mode=OneWay}"
+                                    TextWrapping="Wrap"
+                                    Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.VideoFilenameTemplateError), Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Tokens: {title}  {uploader}  {id}  {date}  {year}  {resolution}" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" TextWrapping="Wrap">
+                                    <Run Text="Example: " /><Run FontFamily="Cascadia Mono, Consolas" Text="{x:Bind ViewModel.VideoFilenamePreview, Mode=OneWay}" />
+                                </TextBlock>
+                                <HyperlinkButton Padding="0" Command="{x:Bind ViewModel.ResetVideoFilenameTemplateCommand}" Content="Reset to default" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsExpander Description="Defaults for new video downloads. You can change them per download on the Home page." Header="Video format and quality" IsExpanded="True">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE714;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Format">
+                            <ComboBox MinWidth="220" ItemsSource="{x:Bind ViewModel.ContainerOptions}" SelectedItem="{x:Bind ViewModel.SelectedVideoContainer, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="The highest resolution to download. Lower resolutions are used when a video doesn't have it." Header="Maximum quality">
+                            <ComboBox MinWidth="220" ItemsSource="{x:Bind ViewModel.VideoQualityOptions}" SelectedItem="{x:Bind ViewModel.SelectedVideoQuality, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="H.264 plays on every device and editor. VP9/AV1 can be sharper at the same size, especially at 1440p and above." Header="Codec">
+                            <ComboBox MinWidth="220" ItemsSource="{x:Bind ViewModel.VideoCodecOptions}" SelectedItem="{x:Bind ViewModel.SelectedVideoCodec, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Not available for WebM." Header="Embed thumbnail as cover">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.EmbedVideoThumbnail, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Embed chapters">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.EmbedVideoChapters, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsExpander Description="Default subtitle languages and how they're saved." Header="Subtitles">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE7F0;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Header="Subtitles">
+                            <ComboBox MinWidth="220" ItemsSource="{x:Bind ViewModel.SubtitleModeOptions}" SelectedItem="{x:Bind ViewModel.SelectedSubtitleMode, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Language codes separated by commas, for example en, ru, de. Patterns like en.* also work." Header="Preferred languages">
+                            <TextBox MinWidth="220" Text="{x:Bind ViewModel.SubtitleLanguages, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="MP4 stores SRT/VTT; WebM only WebVTT. Sonic adjusts automatically when embedding." Header="Format">
+                            <ComboBox MinWidth="220" ItemsSource="{x:Bind ViewModel.SubtitleFormatOptions}" SelectedItem="{x:Bind ViewModel.SelectedSubtitleFormat, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Use automatic captions when a video has no subtitles in your language." Header="Include auto-generated subtitles">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.IncludeAutoSubtitles, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <!-- Integrations -->
+                <TextBlock x:Name="IntegrationsHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="Integrations" />
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Tools.All}">
+                    <ItemsRepeater.Layout>
+                        <StackLayout Spacing="4" />
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ToolStatusViewModel">
+                            <toolkit:SettingsExpander Description="{x:Bind Description}" Header="{x:Bind DisplayName}">
+                                <toolkit:SettingsExpander.HeaderIcon>
+                                    <FontIcon Glyph="&#xE90F;" />
+                                </toolkit:SettingsExpander.HeaderIcon>
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                                        <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{x:Bind State, Mode=OneWay, Converter={StaticResource ToolStateToBrush}}" />
+                                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind StatusText, Mode=OneWay}" />
+                                    </StackPanel>
+                                    <Button Command="{x:Bind InstallCommand}" Content="{x:Bind InstallText, Mode=OneWay}" Visibility="{x:Bind CanInstall, Mode=OneWay}" />
+                                </StackPanel>
+                                <toolkit:SettingsExpander.Items>
+                                    <toolkit:SettingsCard Description="{x:Bind Path, Mode=OneWay}" Header="Location">
+                                        <Button Command="{x:Bind RevealPathCommand}" Content="Show in folder" IsEnabled="{x:Bind IsReady, Mode=OneWay}" />
+                                    </toolkit:SettingsCard>
+                                    <toolkit:SettingsCard Description="{x:Bind Message, Mode=OneWay}" Header="Details" Visibility="{x:Bind helpers:Bind.VisibleIfText(Message), Mode=OneWay}" />
+                                </toolkit:SettingsExpander.Items>
+                            </toolkit:SettingsExpander>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+                <toolkit:SettingsExpander Description="Check the official release pages for new versions of yt-dlp and FFmpeg." Header="Tool updates">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE895;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ProgressRing Width="16" Height="16" IsActive="{x:Bind ViewModel.IsCheckingTools, Mode=OneWay}" />
+                        <Button Command="{x:Bind ViewModel.CheckToolsCommand}" Content="Check now" />
+                    </StackPanel>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="Missing yt-dlp, FFmpeg or Deno are downloaded from their official sources at startup, and Sonic's own yt-dlp is kept up to date." Header="Install and update tools automatically">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.AutoInstallTools, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Check for updates when Sonic starts">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.CheckForToolUpdates, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.YtDlpOverride, Mode=OneWay, FallbackValue='Automatic'}" Header="Custom yt-dlp folder">
+                            <Button Command="{x:Bind ViewModel.ChooseYtDlpCommand}" Content="Choose…" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.FfmpegOverride, Mode=OneWay, FallbackValue='Automatic'}" Header="Custom FFmpeg folder">
+                            <Button Command="{x:Bind ViewModel.ChooseFfmpegCommand}" Content="Choose…" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Use Sonic-managed tools or ones found on PATH." Header="Reset tool locations">
+                            <Button Command="{x:Bind ViewModel.ResetToolOverridesCommand}" Content="Reset" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <toolkit:SettingsExpander
+                    x:Name="ZapretExpander"
+                    Description="Uses your zapret installation to get around YouTube blocking or throttling by your network provider."
+                    Header="zapret">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE83D;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.ZapretStatusText, Mode=OneWay}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.ZapretFolder, Mode=OneWay, FallbackValue='Not found. Unpack zapret and choose its folder.'}" Header="Folder">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button AutomationProperties.Name="Download zapret" Command="{x:Bind ViewModel.InstallZapretCommand}" Content="Download latest" ToolTipService.ToolTip="Downloads zapret-discord-youtube from its official GitHub releases" />
+                                <Button Command="{x:Bind ViewModel.OpenZapretFolderCommand}" Content="Open" IsEnabled="{x:Bind ViewModel.IsZapretInstalled, Mode=OneWay}" />
+                                <Button AutomationProperties.Name="Choose zapret folder" Command="{x:Bind ViewModel.ChooseZapretFolderCommand}" Content="Choose…" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="If YouTube still doesn't work, stop zapret and try another strategy. Windows asks for administrator approval." Header="Strategy">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ComboBox
+                                    MinWidth="260"
+                                    AutomationProperties.Name="zapret strategy"
+                                    IsEnabled="{x:Bind ViewModel.IsZapretInstalled, Mode=OneWay}"
+                                    ItemsSource="{x:Bind ViewModel.ZapretStrategies}"
+                                    SelectedItem="{x:Bind ViewModel.SelectedZapretStrategy, Mode=TwoWay}" />
+                                <Button
+                                    AutomationProperties.Name="Start zapret"
+                                    Command="{x:Bind ViewModel.StartZapretCommand}"
+                                    Content="Start"
+                                    IsEnabled="{x:Bind ViewModel.CanStartZapret, Mode=OneWay}"
+                                    Style="{StaticResource AccentButtonStyle}" />
+                                <Button AutomationProperties.Name="Stop zapret" Command="{x:Bind ViewModel.StopZapretCommand}" Content="Stop" IsEnabled="{x:Bind ViewModel.IsZapretRunning, Mode=OneWay}" />
+                                <ProgressRing Width="16" Height="16" IsActive="{x:Bind ViewModel.IsZapretBusy, Mode=OneWay}" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.ReachabilityText, Mode=OneWay, FallbackValue='Tests youtube.com and the video servers (googlevideo.com).'}" Header="Check YouTube">
+                            <Button AutomationProperties.Name="Check YouTube" Command="{x:Bind ViewModel.CheckYouTubeCommand}" Content="Check" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Only when the internet works but YouTube doesn't. Nothing is downloaded while YouTube is reachable." Header="Download zapret automatically if YouTube is blocked">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ZapretAutoInstall, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Offer to start zapret when a YouTube download fails with a network error." Header="Suggest zapret on network errors">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ZapretSuggest, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Starts the selected strategy whenever Sonic opens (asks for administrator approval each time)." Header="Start with Sonic">
+                            <ToggleSwitch IsOn="{x:Bind ViewModel.ZapretAutoStart, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.ZapretMessage), Mode=OneWay}">
+                            <InfoBar
+                                IsClosable="False"
+                                IsOpen="True"
+                                Message="{x:Bind ViewModel.ZapretMessage, Mode=OneWay}"
+                                Severity="{x:Bind vm:SettingsViewModel.Severity(ViewModel.ZapretMessageIsError), Mode=OneWay}" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <toolkit:SettingsExpander
+                    x:Name="CookiesExpander"
+                    Description="Download as your signed-in self: needed for age-restricted and members-only videos and for YouTube's “confirm you're not a bot” checks."
+                    Header="Cookies">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE72E;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.CookieStatusText, Mode=OneWay}" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="Copies the cookies of a browser profile once. Sign in to YouTube in that browser first." Header="Import from browser">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <ComboBox
+                                    MinWidth="280"
+                                    AutomationProperties.Name="Browser profile"
+                                    DisplayMemberPath="DisplayName"
+                                    IsEnabled="{x:Bind ViewModel.HasBrowsers, Mode=OneWay}"
+                                    ItemsSource="{x:Bind ViewModel.Browsers}"
+                                    PlaceholderText="No browsers found"
+                                    SelectedItem="{x:Bind ViewModel.SelectedBrowserProfile, Mode=TwoWay}" />
+                                <Button
+                                    AutomationProperties.Name="Refresh browsers"
+                                    Command="{x:Bind ViewModel.RefreshBrowsersCommand}"
+                                    Style="{StaticResource IconButtonStyle}"
+                                    ToolTipService.ToolTip="Look for browsers again">
+                                    <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                                </Button>
+                                <Button
+                                    AutomationProperties.Name="Import cookies"
+                                    Command="{x:Bind ViewModel.ImportCookiesCommand}"
+                                    IsEnabled="{x:Bind helpers:Bind.Not(ViewModel.IsImportingCookies), Mode=OneWay}"
+                                    Style="{StaticResource AccentButtonStyle}">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <ProgressRing Width="14" Height="14" IsActive="{x:Bind ViewModel.IsImportingCookies, Mode=OneWay}" Visibility="{x:Bind ViewModel.IsImportingCookies, Mode=OneWay}" />
+                                        <TextBlock Text="Import" />
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard
+                            Description="{x:Bind ViewModel.BrowserHint, Mode=OneWay}"
+                            Header="Note"
+                            Visibility="{x:Bind ViewModel.HasBrowserHint, Mode=OneWay}">
+                            <toolkit:SettingsCard.HeaderIcon>
+                                <FontIcon Foreground="{ThemeResource SystemFillColorCautionBrush}" Glyph="&#xE7BA;" />
+                            </toolkit:SettingsCard.HeaderIcon>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="A cookies.txt file in Netscape format, for example exported with a browser extension. Works with any browser." Header="Import cookies.txt file">
+                            <Button AutomationProperties.Name="Choose cookies file" Command="{x:Bind ViewModel.ImportCookiesFileCommand}" Content="Choose file…" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="Imported cookies are a snapshot; reading from the browser keeps them fresh but needs Chromium browsers to be closed while downloading." Header="Use cookies">
+                            <ComboBox MinWidth="280" AutomationProperties.Name="Cookie mode" ItemsSource="{x:Bind ViewModel.CookieModeOptions}" SelectedItem="{x:Bind ViewModel.SelectedCookieMode, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.CookieDetailText, Mode=OneWay}" Header="Imported cookies">
+                            <Button AutomationProperties.Name="Remove cookies" Command="{x:Bind ViewModel.RemoveCookiesCommand}" Content="Remove" IsEnabled="{x:Bind ViewModel.HasImportedCookies, Mode=OneWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical">
+                            <StackPanel Spacing="8">
+                                <InfoBar
+                                    IsClosable="True"
+                                    IsOpen="{x:Bind helpers:Bind.IsTextNotEmpty(ViewModel.CookieMessage), Mode=OneWay}"
+                                    Message="{x:Bind ViewModel.CookieMessage, Mode=OneWay}"
+                                    Severity="{x:Bind vm:SettingsViewModel.Severity(ViewModel.CookieMessageIsError), Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" TextWrapping="Wrap">
+                                    Cookies are stored encrypted for your Windows account and are given to yt-dlp only while a download runs. They let sites see you as signed in, so only import them on your own PC and remove them when you no longer need them.
+                                </TextBlock>
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <toolkit:SettingsExpander Description="Import playlists and look up track information using the official Spotify Web API." Header="Spotify">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE90B;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Ellipse Width="8" Height="8" VerticalAlignment="Center" Fill="{ThemeResource SystemFillColorSuccessBrush}" Visibility="{x:Bind ViewModel.IsSpotifyConfigured, Mode=OneWay}" />
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Configured" Visibility="{x:Bind ViewModel.IsSpotifyConfigured, Mode=OneWay}" />
+                        <TextBlock VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Not configured" Visibility="{x:Bind helpers:Bind.Collapsed(ViewModel.IsSpotifyConfigured), Mode=OneWay}" />
+                    </StackPanel>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical">
+                            <StackPanel MaxWidth="560" HorizontalAlignment="Left" Spacing="12">
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap">
+                                    Create a free app in the Spotify Developer Dashboard and paste its Client ID and Client Secret here. Sonic only reads public catalog information (track names, artists, albums, artwork). It never streams or downloads Spotify audio — use Spotify's own offline mode for that.
+                                </TextBlock>
+                                <TextBox Header="Client ID" Text="{x:Bind ViewModel.SpotifyClientId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <PasswordBox Header="Client Secret" Password="{x:Bind ViewModel.SpotifyClientSecret, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Command="{x:Bind ViewModel.SaveSpotifyCommand}" Content="Save and verify" Style="{StaticResource AccentButtonStyle}" />
+                                    <ProgressRing Width="16" Height="16" IsActive="{x:Bind ViewModel.IsTestingSpotify, Mode=OneWay}" />
+                                    <HyperlinkButton Command="{x:Bind ViewModel.OpenSpotifyDashboardCommand}" Content="Open Spotify Developer Dashboard" />
+                                </StackPanel>
+                                <TextBlock Text="{x:Bind ViewModel.SpotifyStatus, Mode=OneWay}" TextWrapping="Wrap" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.SpotifyStatus), Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="The secret is encrypted for your Windows account." />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <!-- Library -->
+                <TextBlock x:Name="LibraryHeader" Style="{StaticResource SettingsSectionHeaderStyle}" Text="Library" />
+                <toolkit:SettingsExpander Description="Folders scanned for music. Your download folder is always included." Header="Music folders" IsExpanded="True">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE8F1;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <Button Command="{x:Bind ViewModel.AddMusicFolderCommand}" Content="Add folder" Style="{StaticResource AccentButtonStyle}" />
+                    <toolkit:SettingsExpander.ItemsHeader>
+                        <ItemsRepeater ItemsSource="{x:Bind ViewModel.MusicFolders}">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate x:DataType="x:String">
+                                    <toolkit:SettingsCard Header="{x:Bind}">
+                                        <toolkit:SettingsCard.HeaderIcon>
+                                            <FontIcon Glyph="&#xE8B7;" />
+                                        </toolkit:SettingsCard.HeaderIcon>
+                                        <Button Click="OnRemoveFolderClick" Content="Remove" Tag="{x:Bind}" />
+                                    </toolkit:SettingsCard>
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                    </toolkit:SettingsExpander.ItemsHeader>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.DownloadDirectory, Mode=OneWay}" Header="Download folder (always included)" />
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+                <toolkit:SettingsCard Description="Look for new, changed and removed files every time Sonic starts." Header="Scan on startup">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE895;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.ScanOnStartup, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Description="Update the library automatically while files change in your music folders." Header="Watch folders">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE7B3;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ToggleSwitch IsOn="{x:Bind ViewModel.WatchFolders, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Description="What to do when a download's artist and title already exist in your library." Header="Duplicate songs">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE8C8;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <ComboBox MinWidth="240" ItemsSource="{x:Bind ViewModel.DuplicateOptions}" SelectedItem="{x:Bind ViewModel.SelectedDuplicateHandling, Mode=TwoWay}" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Description="Re-read all music folders now." Header="Rescan library">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE72C;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <Button Command="{x:Bind ViewModel.RescanCommand}" Content="Rescan" />
+                </toolkit:SettingsCard>
+
+                <!-- Advanced -->
+                <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="Advanced" />
+                <toolkit:SettingsCard Description="Write detailed diagnostic messages to the log file." Header="Verbose logging">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE9D9;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Command="{x:Bind ViewModel.OpenLogsCommand}" Content="Open logs" />
+                        <ToggleSwitch IsOn="{x:Bind ViewModel.VerboseLogging, Mode=TwoWay}" />
+                    </StackPanel>
+                </toolkit:SettingsCard>
+                <toolkit:SettingsCard Description="{x:Bind ViewModel.DataDirectory}" Header="Application data">
+                    <toolkit:SettingsCard.HeaderIcon>
+                        <FontIcon Glyph="&#xE7B8;" />
+                    </toolkit:SettingsCard.HeaderIcon>
+                    <Button Command="{x:Bind ViewModel.OpenDataFolderCommand}" Content="Open folder" />
+                </toolkit:SettingsCard>
+                <toolkit:SettingsExpander Description="Versions and paths, useful when reporting a problem." Header="Diagnostic information">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <FontIcon Glyph="&#xE9D9;" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <Button Command="{x:Bind ViewModel.CopyDiagnosticsCommand}" Content="Copy" />
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Left" ContentAlignment="Left">
+                            <TextBlock
+                                FontFamily="Cascadia Mono, Consolas"
+                                FontSize="12"
+                                IsTextSelectionEnabled="True"
+                                Text="{x:Bind ViewModel.Diagnostics, Mode=OneWay}"
+                                TextWrapping="Wrap" />
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+
+                <!-- About -->
+                <TextBlock Style="{StaticResource SettingsSectionHeaderStyle}" Text="About" />
+                <toolkit:SettingsExpander Description="{x:Bind ViewModel.AppVersion}" Header="Sonic">
+                    <toolkit:SettingsExpander.HeaderIcon>
+                        <ImageIcon Source="ms-appx:///Assets/Sonic64.png" />
+                    </toolkit:SettingsExpander.HeaderIcon>
+                    <toolkit:SettingsExpander.Items>
+                        <toolkit:SettingsCard Description="{x:Bind ViewModel.Updates.StatusText, Mode=OneWay}" Header="Updates">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button AutomationProperties.Name="Restart to update" Command="{x:Bind ViewModel.Updates.RestartToUpdateCommand}" Content="Restart to update" Style="{StaticResource AccentButtonStyle}" Visibility="{x:Bind ViewModel.Updates.IsReady, Mode=OneWay}" />
+                                <Button AutomationProperties.Name="Check for updates" Command="{x:Bind ViewModel.Updates.CheckNowCommand}" Content="Check now" />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard Header="Check for updates automatically">
+                            <ToggleSwitch AutomationProperties.Name="Check for updates automatically" IsOn="{x:Bind ViewModel.AutoCheckUpdates, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical" Description="Leave empty to use the source this version was published to." Header="Update source">
+                            <TextBox AutomationProperties.Name="Update source" PlaceholderText="{x:Bind ViewModel.UpdateFeedPlaceholder}" Text="{x:Bind ViewModel.UpdateFeed, Mode=TwoWay}" />
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Left" ContentAlignment="Left">
+                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap">
+                                Sonic uses yt-dlp, FFmpeg, TagLib# and the Spotify Web API. Only download content you're authorized to download, and respect each platform's terms of service. DRM-protected content is never downloaded.
+                            </TextBlock>
+                        </toolkit:SettingsCard>
+                    </toolkit:SettingsExpander.Items>
+                </toolkit:SettingsExpander>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

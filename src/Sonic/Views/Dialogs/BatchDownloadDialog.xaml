@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Sonic.Views.Dialogs.BatchDownloadDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Sonic.Controls"
+    xmlns:helpers="using:Sonic.Helpers"
+    xmlns:vm="using:Sonic.ViewModels"
+    Title="Download a list"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary"
+    IsPrimaryButtonEnabled="{x:Bind ViewModel.CanDownload, Mode=OneWay}"
+    PrimaryButtonClick="OnDownloadClick"
+    PrimaryButtonText="{x:Bind ViewModel.DownloadButtonText, Mode=OneWay}">
+
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">980</x:Double>
+        <x:Double x:Key="ContentDialogMaxHeight">900</x:Double>
+    </ContentDialog.Resources>
+
+    <Grid Width="880" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Input -->
+        <TextBox
+            Height="130"
+            AcceptsReturn="True"
+            AutomationProperties.Name="List of links or songs"
+            FontFamily="Cascadia Mono, Consolas"
+            PlaceholderText="https://www.youtube.com/watch?v=…&#x0a;Daft Punk - Get Lucky&#x0a;Radiohead - Creep"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
+            Text="{x:Bind ViewModel.InputText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+            TextWrapping="NoWrap" />
+
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button AutomationProperties.Name="Open list file" Command="{x:Bind ViewModel.OpenFileCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="14" Glyph="&#xE8E5;" />
+                    <TextBlock Text="Open file…" />
+                </StackPanel>
+            </Button>
+            <Button
+                Grid.Column="1"
+                AutomationProperties.Name="Find matches"
+                Command="{x:Bind ViewModel.FindMatchesCommand}"
+                IsEnabled="{x:Bind helpers:Bind.Not(ViewModel.IsSearching), Mode=OneWay}"
+                Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ProgressRing Width="14" Height="14" IsActive="{x:Bind ViewModel.IsSearching, Mode=OneWay}" Visibility="{x:Bind ViewModel.IsSearching, Mode=OneWay}" />
+                    <FontIcon FontSize="14" Glyph="&#xE721;" Visibility="{x:Bind helpers:Bind.Collapsed(ViewModel.IsSearching), Mode=OneWay}" />
+                    <TextBlock Text="Find matches" />
+                </StackPanel>
+            </Button>
+            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind ViewModel.Summary, Mode=OneWay}" TextWrapping="Wrap" />
+                <TextBlock Style="{StaticResource SecondaryTextStyle}" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.FileName), Mode=OneWay}">
+                    <Run Text="Loaded from " /><Run Text="{x:Bind ViewModel.FileName, Mode=OneWay}" />
+                </TextBlock>
+            </StackPanel>
+        </Grid>
+
+        <!-- Options -->
+        <Grid Grid.Row="2" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <SelectorBar x:Name="ModeSelector" VerticalAlignment="Bottom" AutomationProperties.Name="Download type" SelectionChanged="OnModeSelectionChanged">
+                <SelectorBarItem x:Name="AudioModeItem" Text="Audio">
+                    <SelectorBarItem.Icon>
+                        <FontIcon Glyph="&#xE8D6;" />
+                    </SelectorBarItem.Icon>
+                </SelectorBarItem>
+                <SelectorBarItem x:Name="VideoModeItem" Text="Video">
+                    <SelectorBarItem.Icon>
+                        <FontIcon Glyph="&#xE714;" />
+                    </SelectorBarItem.Icon>
+                </SelectorBarItem>
+            </SelectorBar>
+            <Grid Grid.Column="1">
+                <ComboBox
+                    MinWidth="170"
+                    AutomationProperties.Name="Audio format"
+                    Header="Format"
+                    ItemsSource="{x:Bind ViewModel.FormatOptions}"
+                    SelectedItem="{x:Bind ViewModel.SelectedFormat, Mode=TwoWay}"
+                    Visibility="{x:Bind ViewModel.IsAudioMode, Mode=OneWay}" />
+                <ComboBox
+                    MinWidth="170"
+                    AutomationProperties.Name="Video quality"
+                    Header="Maximum quality"
+                    ItemsSource="{x:Bind ViewModel.VideoQualityOptions}"
+                    SelectedItem="{x:Bind ViewModel.SelectedVideoQuality, Mode=TwoWay}"
+                    Visibility="{x:Bind ViewModel.IsVideoMode, Mode=OneWay}" />
+            </Grid>
+            <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="8" Visibility="{x:Bind ViewModel.CanSaveAsPlaylist, Mode=OneWay}">
+                <CheckBox VerticalAlignment="Center" Content="Save as playlist" IsChecked="{x:Bind ViewModel.SaveAsPlaylist, Mode=TwoWay}" />
+                <TextBox
+                    MinWidth="220"
+                    AutomationProperties.Name="Playlist name"
+                    IsEnabled="{x:Bind ViewModel.SaveAsPlaylist, Mode=OneWay}"
+                    Text="{x:Bind ViewModel.PlaylistName, Mode=TwoWay}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Items -->
+        <Grid Grid.Row="3" RowSpacing="4">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="4">
+                <HyperlinkButton Command="{x:Bind ViewModel.SelectAllCommand}" Content="Select all">
+                    <HyperlinkButton.CommandParameter>
+                        <x:Boolean>True</x:Boolean>
+                    </HyperlinkButton.CommandParameter>
+                </HyperlinkButton>
+                <HyperlinkButton Command="{x:Bind ViewModel.SelectAllCommand}" Content="Select none">
+                    <HyperlinkButton.CommandParameter>
+                        <x:Boolean>False</x:Boolean>
+                    </HyperlinkButton.CommandParameter>
+                </HyperlinkButton>
+                <HyperlinkButton Command="{x:Bind ViewModel.StopSearchingCommand}" Content="Stop searching" Visibility="{x:Bind ViewModel.IsSearching, Mode=OneWay}" />
+            </StackPanel>
+            <ListView
+                Grid.Row="1"
+                Height="280"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                ItemsSource="{x:Bind ViewModel.Items}"
+                SelectionMode="None">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BatchItemViewModel">
+                        <Grid Padding="0,6" ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="28" />
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="3*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <CheckBox MinWidth="0" AutomationProperties.Name="{x:Bind Input}" IsChecked="{x:Bind IsSelected, Mode=TwoWay}" />
+                            <TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind Index}" />
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Input}" ToolTipService.ToolTip="{x:Bind Input}" />
+                            <FontIcon Grid.Column="3" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Glyph="&#xE72A;" />
+                            <controls:ArtworkImage
+                                Grid.Column="4"
+                                Width="64"
+                                Height="36"
+                                DecodeSize="128"
+                                Glyph="{x:Bind StatusGlyph, Mode=OneWay}"
+                                Source="{x:Bind Thumbnail, Mode=OneWay}" />
+                            <StackPanel Grid.Column="5" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind MatchTitle, Mode=OneWay}" ToolTipService.ToolTip="{x:Bind MatchTitle, Mode=OneWay}" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind MatchDetails, Mode=OneWay}" />
+                                <TextBlock FontSize="12" Foreground="{ThemeResource SystemFillColorSuccessBrush}" Text="Already downloaded" Visibility="{x:Bind IsDownloaded, Mode=OneWay}" />
+                            </StackPanel>
+                            <Button
+                                Grid.Column="6"
+                                AutomationProperties.Name="Next match"
+                                Command="{x:Bind NextMatchCommand}"
+                                Style="{StaticResource IconButtonStyle}"
+                                ToolTipService.ToolTip="Try the next search result"
+                                Visibility="{x:Bind CanCycle, Mode=OneWay}">
+                                <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Grid>
+
+        <StackPanel Grid.Row="4" Spacing="4">
+            <controls:SaveToPicker
+                DefaultFolder="{x:Bind ViewModel.DefaultFolder, Mode=OneWay}"
+                Folder="{x:Bind ViewModel.SaveToFolder, Mode=TwoWay}"
+                RecentFolders="{x:Bind ViewModel.RecentFolders, Mode=OneWay}" />
+            <TextBlock
+                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                Text="{x:Bind ViewModel.FolderError, Mode=OneWay}"
+                Visibility="{x:Bind ViewModel.HasFolderError, Mode=OneWay}" />
+        </StackPanel>
+
+        <InfoBar
+            Grid.Row="5"
+            IsClosable="False"
+            IsOpen="{x:Bind helpers:Bind.IsTextNotEmpty(ViewModel.Error), Mode=OneWay}"
+            Message="{x:Bind ViewModel.Error, Mode=OneWay}"
+            Severity="Warning" />
+    </Grid>
+</ContentDialog>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Sonic.Controls.ArtworkImage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    IsTabStop="False">
+    <Border
+        x:Name="Root"
+        Background="{ThemeResource ControlAltFillColorTertiaryBrush}"
+        BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+        BorderThickness="1">
+        <Grid>
+            <FontIcon
+                x:Name="Placeholder"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Glyph="&#xE8D6;" />
+            <Image x:Name="Picture" Stretch="UniformToFill" ImageFailed="OnImageFailed" />
+        </Grid>
+    </Border>
+</UserControl>

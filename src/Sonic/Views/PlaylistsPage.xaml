@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Sonic.Views.PlaylistsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Sonic.Controls"
+    xmlns:vm="using:Sonic.ViewModels"
+    NavigationCacheMode="Required">
+
+    <Grid MaxWidth="{StaticResource PageMaxWidth}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Margin="{StaticResource PageHeaderMargin}" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Style="{StaticResource PageTitleTextStyle}" Text="Playlists" />
+                <TextBlock Style="{StaticResource PageSubtitleTextStyle}" Text="Create your own playlists or import track lists from Spotify." />
+            </StackPanel>
+            <Button Grid.Column="1" VerticalAlignment="Center" AutomationProperties.Name="Import from Spotify" Command="{x:Bind ViewModel.ImportSpotifyCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="14" Glyph="&#xE8B5;" />
+                    <TextBlock Text="Import from Spotify" />
+                </StackPanel>
+            </Button>
+            <Button Grid.Column="2" VerticalAlignment="Center" AutomationProperties.Name="New playlist" Command="{x:Bind ViewModel.CreateCommand}" Style="{StaticResource AccentButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="14" Glyph="&#xE710;" />
+                    <TextBlock Text="New playlist" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <GridView
+            x:Name="PlaylistGrid"
+            Grid.Row="1"
+            Padding="36,16,36,24"
+            IsItemClickEnabled="True"
+            ItemClick="OnPlaylistClick"
+            ItemsSource="{x:Bind ViewModel.Playlists, Mode=OneWay}"
+            SelectionMode="None">
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="vm:PlaylistCardViewModel">
+                    <StackPanel Width="184" Padding="0,6,0,8" Spacing="8" Background="Transparent">
+                        <StackPanel.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Click="OnRenameClick" Text="Rename">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE8AC;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Click="OnDeleteClick" Text="Delete">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE74D;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </StackPanel.ContextFlyout>
+                        <Grid>
+                            <controls:ArtworkImage
+                                Width="184"
+                                Height="184"
+                                DecodeSize="368"
+                                Glyph="&#xE90B;"
+                                GlyphSize="44"
+                                ImageCornerRadius="8"
+                                Source="{x:Bind Artwork}" />
+                            <Border
+                                Margin="8"
+                                Padding="6,2"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Top"
+                                Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                                CornerRadius="4"
+                                Visibility="{x:Bind IsSpotify}">
+                                <TextBlock FontSize="11" Text="Spotify import" />
+                            </Border>
+                        </Grid>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Name}" ToolTipService.ToolTip="{x:Bind Name}" />
+                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind Details}" />
+                        </StackPanel>
+                    </StackPanel>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+
+        <ProgressRing Grid.Row="1" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+
+        <StackPanel
+            Grid.Row="1"
+            MaxWidth="400"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Spacing="8"
+            Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
+            <FontIcon FontSize="48" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Glyph="&#xE90B;" />
+            <TextBlock HorizontalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}" Text="No playlists yet" />
+            <TextBlock
+                HorizontalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text="Create a playlist from songs in your library, or import a Spotify playlist to see which songs you already have."
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
+        </StackPanel>
+    </Grid>
+</Page>

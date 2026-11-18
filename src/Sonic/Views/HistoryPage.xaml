@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Sonic.Views.HistoryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Sonic.Controls"
+    xmlns:vm="using:Sonic.ViewModels"
+    NavigationCacheMode="Required">
+
+    <Page.Resources>
+        <CollectionViewSource x:Name="GroupedItems" IsSourceGrouped="True" Source="{x:Bind ViewModel.Groups, Mode=OneWay}" />
+    </Page.Resources>
+
+    <Grid MaxWidth="{StaticResource PageMaxWidth}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Margin="{StaticResource PageHeaderMargin}">
+            <TextBlock Style="{StaticResource PageTitleTextStyle}" Text="History" />
+            <TextBlock Style="{StaticResource PageSubtitleTextStyle}" Text="{x:Bind ViewModel.Summary, Mode=OneWay}" />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="36,16,36,8" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <AutoSuggestBox
+                Width="280"
+                AutomationProperties.Name="Search history"
+                PlaceholderText="Search history"
+                QueryIcon="Find"
+                Text="{x:Bind ViewModel.SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+            <ComboBox
+                Grid.Column="1"
+                MinWidth="140"
+                AutomationProperties.Name="Filter by status"
+                ItemsSource="{x:Bind ViewModel.Filters}"
+                SelectedItem="{x:Bind ViewModel.SelectedFilter, Mode=TwoWay}" />
+            <Button Grid.Column="3" AutomationProperties.Name="Clear history" Command="{x:Bind ViewModel.ClearCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon FontSize="14" Glyph="&#xE74D;" />
+                    <TextBlock Text="Clear history" />
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <ListView
+            Grid.Row="2"
+            Padding="36,0,36,24"
+            ItemsSource="{x:Bind GroupedItems.View, Mode=OneWay}"
+            SelectionMode="None">
+            <ListView.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate x:DataType="vm:HistoryGroup">
+                            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Key}" />
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </ListView.GroupStyle>
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="IsTabStop" Value="False" />
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate x:DataType="vm:HistoryItemViewModel">
+                    <Border Style="{StaticResource ListCardBorderStyle}">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <controls:ArtworkImage Width="72" Height="40" DecodeSize="144" Source="{x:Bind ThumbnailUrl}" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Title}" ToolTipService.ToolTip="{x:Bind Title}" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}">
+                                    <Run Text="{x:Bind Subtitle}" /><Run Text=" · " /><Run Text="{x:Bind DateText}" />
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Spacing="2">
+                                <StackPanel HorizontalAlignment="Right" Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontSize="12" Foreground="{x:Bind Model.Status, Converter={StaticResource DownloadStatusToBrush}}" Glyph="{x:Bind StatusGlyph}" />
+                                    <TextBlock FontSize="12" Foreground="{x:Bind Model.Status, Converter={StaticResource DownloadStatusToBrush}}" Text="{x:Bind StatusText}" />
+                                </StackPanel>
+                                <TextBlock HorizontalAlignment="Right" Style="{StaticResource SecondaryTextStyle}">
+                                    <Run Text="{x:Bind FormatText}" /><Run Text=" " /><Run Text="{x:Bind SizeText}" />
+                                </TextBlock>
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" VerticalAlignment="Center" Orientation="Horizontal" Spacing="2">
+                                <Button AutomationProperties.Name="Open file" Click="OnOpenClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Open file" Visibility="{x:Bind HasFile}">
+                                    <FontIcon FontSize="14" Glyph="&#xE768;" />
+                                </Button>
+                                <Button AutomationProperties.Name="Show in folder" Click="OnFolderClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Show in folder" Visibility="{x:Bind HasFile}">
+                                    <FontIcon FontSize="14" Glyph="&#xE838;" />
+                                </Button>
+                                <Button AutomationProperties.Name="Error details" Click="OnErrorClick" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="Error details" Visibility="{x:Bind IsFailed}">
+                                    <FontIcon FontSize="14" Glyph="&#xE946;" />
+                                </Button>
+                                <Button AutomationProperties.Name="More options" Style="{StaticResource IconButtonStyle}" ToolTipService.ToolTip="More options">
+                                    <FontIcon FontSize="14" Glyph="&#xE712;" />
+                                    <Button.Flyout>
+                                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                                            <MenuFlyoutItem Click="OnDownloadAgainClick" Text="Download again">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE896;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Click="OnCopyLinkClick" Text="Copy link">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8C8;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Click="OnSourceClick" Text="Open source page">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE774;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Click="OnRemoveClick" Text="Remove from history">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE74D;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </Button.Flyout>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <ProgressRing Grid.Row="2" IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}" />
+
+        <StackPanel
+            Grid.Row="2"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Spacing="8"
+            Visibility="{x:Bind ViewModel.IsEmpty, Mode=OneWay}">
+            <FontIcon FontSize="48" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Glyph="&#xE81C;" />
+            <TextBlock HorizontalAlignment="Center" Style="{StaticResource SubtitleTextBlockStyle}" Text="No history" />
+            <TextBlock HorizontalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="Finished, failed and canceled downloads appear here." />
+        </StackPanel>
+    </Grid>
+</Page>

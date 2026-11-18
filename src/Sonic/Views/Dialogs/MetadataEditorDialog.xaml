@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Sonic.Views.Dialogs.MetadataEditorDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Sonic.Controls"
+    xmlns:core="using:Sonic.Core.Models"
+    xmlns:services="using:Sonic.Core.Services"
+    xmlns:helpers="using:Sonic.Helpers"
+    Title="Edit metadata"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary"
+    PrimaryButtonClick="OnSaveClick"
+    PrimaryButtonText="Save">
+
+    <ContentDialog.Resources>
+        <x:Double x:Key="ContentDialogMaxWidth">760</x:Double>
+    </ContentDialog.Resources>
+
+    <ScrollViewer MaxHeight="560" Padding="0,0,12,0">
+        <Grid Width="660" ColumnSpacing="20" RowSpacing="12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Artwork -->
+            <StackPanel Spacing="8">
+                <Border
+                    Width="180"
+                    Height="180"
+                    Background="{ThemeResource ControlAltFillColorTertiaryBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8">
+                    <Grid>
+                        <FontIcon FontSize="40" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Glyph="&#xE93C;" />
+                        <Image x:Name="ArtworkPreview" Stretch="UniformToFill" />
+                    </Grid>
+                </Border>
+                <Button HorizontalAlignment="Stretch" Command="{x:Bind ViewModel.ChooseArtworkCommand}" Content="Choose image…" />
+                <Button HorizontalAlignment="Stretch" Command="{x:Bind ViewModel.RemoveArtworkCommand}" Content="Remove artwork" />
+                <Button HorizontalAlignment="Stretch" AutomationProperties.Name="Find cover online" Command="{x:Bind ViewModel.FindCoversCommand}" ToolTipService.ToolTip="Search iTunes and Deezer for the album cover">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="&#xE721;" />
+                        <TextBlock Text="Find cover online" />
+                    </StackPanel>
+                </Button>
+                <TextBlock Margin="0,8,0,0" Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind ViewModel.FileName, Mode=OneWay}" TextWrapping="Wrap" />
+                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind ViewModel.FileDetails, Mode=OneWay}" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- Fields -->
+            <StackPanel Grid.Column="1" Spacing="12">
+                <TextBox Header="Title" Text="{x:Bind ViewModel.Title, Mode=TwoWay}" />
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Header="Artist" Text="{x:Bind ViewModel.Artist, Mode=TwoWay}" />
+                    <TextBox Grid.Column="1" Header="Album artist" Text="{x:Bind ViewModel.AlbumArtist, Mode=TwoWay}" />
+                </Grid>
+                <TextBox Header="Album" Text="{x:Bind ViewModel.Album, Mode=TwoWay}" />
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="2*" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Header="Track #" InputScope="Number" Text="{x:Bind ViewModel.TrackNumber, Mode=TwoWay}" />
+                    <TextBox Grid.Column="1" Header="Year" InputScope="Number" Text="{x:Bind ViewModel.Year, Mode=TwoWay}" />
+                    <TextBox Grid.Column="2" Header="Genre" Text="{x:Bind ViewModel.Genre, Mode=TwoWay}" />
+                </Grid>
+                <TextBox Header="Comment" Text="{x:Bind ViewModel.Comment, Mode=TwoWay}" />
+
+                <!-- Online covers -->
+                <StackPanel Spacing="6" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.CoverMessage), Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind ViewModel.CoverMessage, Mode=OneWay}" TextWrapping="Wrap" />
+                    </StackPanel>
+                    <GridView
+                        MaxHeight="260"
+                        AutomationProperties.Name="Online covers"
+                        IsItemClickEnabled="True"
+                        ItemClick="OnCoverItemClick"
+                        ItemsSource="{x:Bind ViewModel.CoverResults}"
+                        SelectionMode="None">
+                        <GridView.ItemTemplate>
+                            <DataTemplate x:DataType="services:CoverCandidate">
+                                <StackPanel Width="104" Spacing="2" AutomationProperties.Name="{x:Bind Description}" ToolTipService.ToolTip="{x:Bind Description}">
+                                    <controls:ArtworkImage Width="104" Height="104" DecodeSize="208" GlyphSize="20" ImageCornerRadius="6" Source="{x:Bind PreviewUrl}" />
+                                    <TextBlock FontSize="11" MaxLines="1" Text="{x:Bind Album}" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{x:Bind Source}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
+                </StackPanel>
+                <ProgressBar IsIndeterminate="True" Visibility="{x:Bind ViewModel.IsFindingCovers, Mode=OneWay}" />
+
+                <InfoBar IsClosable="False" IsOpen="{x:Bind helpers:Bind.IsTextNotEmpty(ViewModel.Error), Mode=OneWay}" Message="{x:Bind ViewModel.Error, Mode=OneWay}" Severity="Error" />
+
+                <!-- Spotify lookup -->
+                <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Header="Look up on Spotify" IsEnabled="{x:Bind ViewModel.CanLookup}">
+                    <StackPanel Spacing="8">
+                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Searches Spotify's catalog using the artist and title above." TextWrapping="Wrap" />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <Button Command="{x:Bind ViewModel.LookupCommand}" Content="Search" />
+                            <ProgressRing Width="16" Height="16" IsActive="{x:Bind ViewModel.IsLookingUp, Mode=OneWay}" />
+                        </StackPanel>
+                        <TextBlock Text="{x:Bind ViewModel.LookupMessage, Mode=OneWay}" TextWrapping="Wrap" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.LookupMessage), Mode=OneWay}" />
+                        <ListView
+                            MaxHeight="220"
+                            IsItemClickEnabled="True"
+                            ItemClick="OnLookupItemClick"
+                            ItemsSource="{x:Bind ViewModel.LookupResults}"
+                            SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="core:SpotifyTrack">
+                                    <StackPanel Padding="0,6">
+                                        <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Name}" />
+                                        <TextBlock Style="{StaticResource SecondaryTextStyle}">
+                                            <Run Text="{x:Bind ArtistText}" /><Run Text=" · " /><Run Text="{x:Bind Album}" /><Run Text=" · " /><Run Text="{x:Bind Year}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Expander>
+                <TextBlock
+                    Style="{StaticResource SecondaryTextStyle}"
+                    Text="Add Spotify credentials in Settings › Integrations to enable lookups."
+                    Visibility="{x:Bind helpers:Bind.Collapsed(ViewModel.CanLookup)}" />
+            </StackPanel>
+        </Grid>
+    </ScrollViewer>
+</ContentDialog>

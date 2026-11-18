@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="Sonic.Views.Dialogs.ToolInstallDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:helpers="using:Sonic.Helpers"
+    Title="{x:Bind ViewModel.Title}"
+    CloseButtonClick="OnCloseClick"
+    CloseButtonText="Cancel"
+    DefaultButton="Close">
+
+    <StackPanel Width="440" Spacing="14">
+        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.SourceText}" TextWrapping="Wrap" />
+        <TextBlock Text="{x:Bind ViewModel.Stage, Mode=OneWay}" />
+        <ProgressBar
+            IsIndeterminate="{x:Bind ViewModel.IsIndeterminate, Mode=OneWay}"
+            ShowError="{x:Bind helpers:Bind.IsTextNotEmpty(ViewModel.Error), Mode=OneWay}"
+            Value="{x:Bind ViewModel.Percent, Mode=OneWay}" />
+        <InfoBar IsClosable="False" IsOpen="{x:Bind helpers:Bind.IsTextNotEmpty(ViewModel.Error), Mode=OneWay}" Message="{x:Bind ViewModel.Error, Mode=OneWay}" Severity="Error" />
+        <InfoBar IsClosable="False" IsOpen="{x:Bind ViewModel.Succeeded, Mode=OneWay}" Message="Sonic will use the new version right away." Severity="Success" />
+    </StackPanel>
+</ContentDialog>

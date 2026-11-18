@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Sonic.Controls.StatusBar"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:helpers="using:Sonic.Helpers"
+    xmlns:vm="using:Sonic.ViewModels">
+
+    <UserControl.Resources>
+        <Style x:Key="StatusButtonStyle" TargetType="Button" BasedOn="{StaticResource SubtleButtonStyle}">
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Style>
+    </UserControl.Resources>
+
+    <Border
+        Padding="12,3"
+        Background="{ThemeResource LayerOnMicaBaseAltFillColorDefaultBrush}"
+        BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+        BorderThickness="0,1,0,0">
+        <Grid ColumnSpacing="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                Command="{x:Bind ViewModel.OpenIntegrationsCommand}"
+                Style="{StaticResource StatusButtonStyle}"
+                ToolTipService.ToolTip="{x:Bind ViewModel.Tools.YtDlp.StatusText, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Width="8" Height="8" Fill="{x:Bind ViewModel.Tools.YtDlp.State, Mode=OneWay, Converter={StaticResource ToolStateToBrush}}" VerticalAlignment="Center" />
+                    <TextBlock Text="yt-dlp" />
+                    <TextBlock Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{x:Bind ViewModel.Tools.YtDlp.ShortStatus, Mode=OneWay}" />
+                </StackPanel>
+            </Button>
+
+            <Button
+                Grid.Column="1"
+                Command="{x:Bind ViewModel.OpenIntegrationsCommand}"
+                Style="{StaticResource StatusButtonStyle}"
+                ToolTipService.ToolTip="{x:Bind ViewModel.Tools.Ffmpeg.StatusText, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Width="8" Height="8" Fill="{x:Bind ViewModel.Tools.Ffmpeg.State, Mode=OneWay, Converter={StaticResource ToolStateToBrush}}" VerticalAlignment="Center" />
+                    <TextBlock Text="FFmpeg" />
+                    <TextBlock Foreground="{ThemeResource TextFillColorTertiaryBrush}" Text="{x:Bind ViewModel.Tools.Ffmpeg.ShortStatus, Mode=OneWay}" />
+                </StackPanel>
+            </Button>
+
+            <Button
+                Grid.Column="2"
+                Command="{x:Bind ViewModel.OpenDownloadsCommand}"
+                Style="{StaticResource StatusButtonStyle}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="12" Glyph="&#xE896;" />
+                    <TextBlock Text="{x:Bind vm:ShellViewModel.ActiveDownloadsText(ViewModel.Downloads.ActiveCount), Mode=OneWay}" />
+                    <TextBlock Foreground="{ThemeResource SystemFillColorCautionBrush}" Text="· paused while gaming" Visibility="{x:Bind ViewModel.GameMode.IsHolding, Mode=OneWay}" />
+                </StackPanel>
+            </Button>
+
+            <Button
+                Grid.Column="3"
+                HorizontalAlignment="Right"
+                AutomationProperties.Name="Restart to update"
+                Command="{x:Bind ViewModel.Updates.RestartToUpdateCommand}"
+                Style="{StaticResource StatusButtonStyle}"
+                ToolTipService.ToolTip="{x:Bind ViewModel.Updates.StatusText, Mode=OneWay}"
+                Visibility="{x:Bind ViewModel.Updates.IsReady, Mode=OneWay}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <FontIcon FontSize="12" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Glyph="&#xE895;" />
+                    <TextBlock Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Text="Restart to update" />
+                </StackPanel>
+            </Button>
+
+            <TextBlock
+                Grid.Column="4"
+                Margin="8,0"
+                VerticalAlignment="Center"
+                FontSize="12"
+                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                Text="{x:Bind vm:ShellViewModel.AppVersion}" />
+        </Grid>
+    </Border>
+</UserControl>

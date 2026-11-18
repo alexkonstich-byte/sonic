@@ -1,0 +1,727 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="Sonic.Views.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Sonic.Controls"
+    xmlns:core="using:Sonic.Core.Models"
+    xmlns:coreAbs="using:Sonic.Core.Abstractions"
+    xmlns:helpers="using:Sonic.Helpers"
+    xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
+    xmlns:vm="using:Sonic.ViewModels"
+    AllowDrop="True"
+    DragOver="OnDragOver"
+    Drop="OnDrop"
+    NavigationCacheMode="Required">
+
+    <ScrollViewer>
+        <StackPanel MaxWidth="{StaticResource PageMaxWidth}" Padding="{StaticResource PagePadding}">
+
+            <!-- Hero -->
+            <TextBlock Style="{StaticResource PageTitleTextStyle}" Text="Download music and video" />
+            <TextBlock Style="{StaticResource PageSubtitleTextStyle}" Text="Paste a link from YouTube, YouTube Music, SoundCloud, Bandcamp, VK, Rutube or any site yt-dlp supports." />
+
+            <!-- Setup warning -->
+            <InfoBar
+                Title="Setup needed"
+                Margin="0,16,0,0"
+                IsClosable="False"
+                IsOpen="{x:Bind helpers:Bind.Not(ViewModel.Tools.YtDlp.IsReady), Mode=OneWay}"
+                Message="yt-dlp is required to analyze and download links."
+                Severity="Warning">
+                <InfoBar.ActionButton>
+                    <Button Command="{x:Bind ViewModel.Tools.YtDlp.InstallCommand}" Content="Install yt-dlp" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+            <InfoBar
+                Title="Setup needed"
+                Margin="0,8,0,0"
+                IsClosable="False"
+                IsOpen="{x:Bind helpers:Bind.Not(ViewModel.Tools.Ffmpeg.IsReady), Mode=OneWay}"
+                Message="FFmpeg is required to convert audio and embed album art."
+                Severity="Warning">
+                <InfoBar.ActionButton>
+                    <Button Command="{x:Bind ViewModel.Tools.Ffmpeg.InstallCommand}" Content="Install FFmpeg" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <!-- URL input -->
+            <Border Margin="0,20,0,0" Padding="20" Style="{StaticResource CardBorderStyle}">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            Grid.Column="4"
+                            Height="36"
+                            AutomationProperties.Name="Download now"
+                            Command="{x:Bind ViewModel.QuickDownloadCommand}"
+                            IsEnabled="{x:Bind ViewModel.CanQuickDownload, Mode=OneWay}"
+                            ToolTipService.ToolTip="Download right away with the current options, without analyzing (Ctrl+Enter)">
+                            <FontIcon FontSize="14" Glyph="&#xE896;" />
+                        </Button>
+
+                        <Button
+                            Grid.Column="5"
+                            Height="36"
+                            AutomationProperties.Name="Download a list"
+                            Command="{x:Bind ViewModel.BatchDownloadCommand}"
+                            ToolTipService.ToolTip="Download many links or songs at once (paste a list or open .txt, .csv, .m3u)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="14" Glyph="&#xE8FD;" />
+                                <TextBlock Text="List" />
+                            </StackPanel>
+                        </Button>
+
+                        <Border
+                            Width="40"
+                            Height="40"
+                            Background="{ThemeResource AccentFillColorDefaultBrush}"
+                            CornerRadius="6"
+                            ToolTipService.ToolTip="{x:Bind ViewModel.SourceName, Mode=OneWay}">
+                            <FontIcon
+                                FontSize="18"
+                                Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"
+                                Glyph="{x:Bind ViewModel.SourceGlyph, Mode=OneWay}" />
+                        </Border>
+
+                        <TextBox
+                            x:Name="UrlBox"
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Link to download"
+                            FontSize="15"
+                            InputScope="Url"
+                            KeyDown="OnUrlKeyDown"
+                            PlaceholderText="Paste a link or type to search YouTube"
+                            Text="{x:Bind ViewModel.Url, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                        <Button
+                            Grid.Column="2"
+                            Height="36"
+                            AutomationProperties.Name="Paste" Command="{x:Bind ViewModel.PasteCommand}"
+                            ToolTipService.ToolTip="Paste link (Ctrl+V)">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="14" Glyph="&#xE77F;" />
+                                <TextBlock Text="Paste" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button
+                            Grid.Column="3"
+                            Height="36"
+                            MinWidth="112"
+                            AutomationProperties.Name="{x:Bind ViewModel.AnalyzeButtonText, Mode=OneWay}" Command="{x:Bind ViewModel.AnalyzeCommand}"
+                            Style="{StaticResource AccentButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon FontSize="14" Glyph="&#xE721;" />
+                                <TextBlock Text="{x:Bind ViewModel.AnalyzeButtonText, Mode=OneWay}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <Grid Margin="48,0,0,0" ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <ComboBox
+                            Grid.Column="2"
+                            MinWidth="170"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Presets"
+                            DisplayMemberPath="Name"
+                            ItemsSource="{x:Bind ViewModel.Presets}"
+                            PlaceholderText="Apply preset"
+                            SelectedItem="{x:Bind ViewModel.SelectedPreset, Mode=TwoWay}"
+                            ToolTipService.ToolTip="Apply saved download options" />
+                        <Button
+                            Grid.Column="3"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="Save as preset"
+                            Command="{x:Bind ViewModel.SavePresetCommand}"
+                            Style="{StaticResource SubtleButtonStyle}"
+                            ToolTipService.ToolTip="Save the current options as a preset">
+                            <FontIcon FontSize="14" Glyph="&#xE74E;" />
+                        </Button>
+                        <SelectorBar x:Name="ModeSelector" AutomationProperties.Name="Download type" SelectionChanged="OnModeSelectionChanged">
+                            <SelectorBarItem x:Name="AudioModeItem" Text="Audio">
+                                <SelectorBarItem.Icon>
+                                    <FontIcon Glyph="&#xE8D6;" />
+                                </SelectorBarItem.Icon>
+                            </SelectorBarItem>
+                            <SelectorBarItem x:Name="VideoModeItem" Text="Video">
+                                <SelectorBarItem.Icon>
+                                    <FontIcon Glyph="&#xE714;" />
+                                </SelectorBarItem.Icon>
+                            </SelectorBarItem>
+                        </SelectorBar>
+                        <TextBlock
+                            Grid.Column="1"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource SecondaryTextStyle}"
+                            Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.SourceName), Mode=OneWay}">
+                            <Run Text="{x:Bind ViewModel.SourceName, Mode=OneWay}" /><Run Text=" link detected" />
+                        </TextBlock>
+                    </Grid>
+
+                    <!-- Analyzing -->
+                    <Grid ColumnSpacing="12" Visibility="{x:Bind ViewModel.IsAnalyzing, Mode=OneWay}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="8">
+                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Analyzing link…" />
+                            <ProgressBar IsIndeterminate="True" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Command="{x:Bind ViewModel.CancelAnalyzeCommand}" Content="Cancel" />
+                    </Grid>
+
+                    <StackPanel Spacing="8" Visibility="{x:Bind ViewModel.IsSearching, Mode=OneWay}">
+                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Searching YouTube…" />
+                        <ProgressBar IsIndeterminate="True" />
+                    </StackPanel>
+
+                    <InfoBar
+                        Title="Couldn't analyze this link"
+                        IsClosable="False"
+                        IsOpen="{x:Bind helpers:Bind.IsTextNotEmpty(ViewModel.AnalysisError), Mode=OneWay}"
+                        Message="{x:Bind ViewModel.AnalysisError, Mode=OneWay}"
+                        Severity="Error">
+                        <InfoBar.ActionButton>
+                            <Button Command="{x:Bind ViewModel.OpenCookieSettingsCommand}" Content="Open cookie settings" Visibility="{x:Bind ViewModel.ShowCookieHint, Mode=OneWay}" />
+                        </InfoBar.ActionButton>
+                    </InfoBar>
+                </StackPanel>
+            </Border>
+
+            <!-- Search results -->
+            <Border
+                Margin="0,12,0,0"
+                Padding="20,12"
+                Style="{StaticResource CardBorderStyle}"
+                Visibility="{x:Bind ViewModel.HasSearchResults, Mode=OneWay}">
+                <StackPanel Spacing="8">
+                    <Grid>
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind ViewModel.SearchTitle, Mode=OneWay}" />
+                        <Button HorizontalAlignment="Right" Command="{x:Bind ViewModel.ClearSearchCommand}" Content="Clear" />
+                    </Grid>
+                    <ItemsControl ItemsSource="{x:Bind ViewModel.SearchResults}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:SearchResultItem">
+                                <Grid Padding="0,6" ColumnSpacing="12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <controls:ArtworkImage Width="96" Height="54" DecodeSize="192" Glyph="&#xE714;" GlyphSize="18" ImageCornerRadius="4" Source="{x:Bind Thumbnail}" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                                        <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Title}" ToolTipService.ToolTip="{x:Bind Title}" />
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <Border Padding="6,0" Background="{ThemeResource SystemFillColorSuccessBackgroundBrush}" CornerRadius="4" Visibility="{x:Bind IsDownloaded, Mode=OneWay}">
+                                                <TextBlock FontSize="11" Foreground="{ThemeResource SystemFillColorSuccessBrush}" Text="Downloaded" />
+                                            </Border>
+                                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind Subtitle}" />
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4">
+                                        <Button AutomationProperties.Name="Preview" Click="OnPreviewResultClick" Style="{StaticResource SubtleButtonStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="Preview (stream without downloading)">
+                                            <FontIcon FontSize="14" Glyph="&#xE768;" />
+                                        </Button>
+                                        <Button AutomationProperties.Name="Download audio" Click="OnResultAudioClick" Style="{StaticResource SubtleButtonStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="Download audio with default options">
+                                            <FontIcon FontSize="14" Glyph="&#xE8D6;" />
+                                        </Button>
+                                        <Button AutomationProperties.Name="Download video" Click="OnResultVideoClick" Style="{StaticResource SubtleButtonStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="Download video with default options">
+                                            <FontIcon FontSize="14" Glyph="&#xE714;" />
+                                        </Button>
+                                        <Button AutomationProperties.Name="More options" Click="OnResultOpenClick" Content="Options" Tag="{x:Bind}" ToolTipService.ToolTip="Analyze and choose format, quality, subtitles" />
+                                    </StackPanel>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <!-- Analysis result -->
+            <Border
+                Margin="0,12,0,0"
+                Padding="20"
+                Style="{StaticResource CardBorderStyle}"
+                Visibility="{x:Bind ViewModel.HasAnalysis, Mode=OneWay}">
+                <Grid ColumnSpacing="20" RowSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <controls:ArtworkImage
+                        Width="224"
+                        Height="126"
+                        VerticalAlignment="Top"
+                        DecodeSize="448"
+                        Glyph="{x:Bind ViewModel.AnalysisPlatformGlyph, Mode=OneWay}"
+                        GlyphSize="32"
+                        ImageCornerRadius="8"
+                        Source="{x:Bind ViewModel.AnalysisThumbnail, Mode=OneWay}" />
+
+                    <StackPanel Grid.Column="1" Spacing="6">
+                        <TextBlock
+                            MaxLines="2"
+                            Style="{StaticResource SubtitleTextBlockStyle}"
+                            Text="{x:Bind ViewModel.AnalysisTitle, Mode=OneWay}"
+                            TextTrimming="CharacterEllipsis"
+                            TextWrapping="Wrap" />
+                        <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind ViewModel.AnalysisSubtitle, Mode=OneWay}" />
+                        <StackPanel Margin="0,4,0,0" Orientation="Horizontal" Spacing="6">
+                            <Border Style="{StaticResource PillBorderStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontSize="11" Glyph="{x:Bind ViewModel.AnalysisPlatformGlyph, Mode=OneWay}" />
+                                    <TextBlock FontSize="12" Text="{x:Bind ViewModel.AnalysisPlatform, Mode=OneWay}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource PillBorderStyle}" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.AnalysisDuration), Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontSize="11" Glyph="&#xE823;" />
+                                    <TextBlock FontSize="12" Text="{x:Bind ViewModel.AnalysisDuration, Mode=OneWay}" />
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource PillBorderStyle}" Visibility="{x:Bind ViewModel.IsPlaylist, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon FontSize="11" Glyph="&#xE90B;" />
+                                    <TextBlock FontSize="12" Text="{x:Bind ViewModel.PlaylistSummaryText, Mode=OneWay}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Output options -->
+                    <StackPanel Grid.Row="1" Grid.ColumnSpan="2" Spacing="16">
+                        <InfoBar
+                            Title="Already downloaded"
+                            IsClosable="True"
+                            IsOpen="{x:Bind ViewModel.HasPreviousDownload, Mode=OneWay}"
+                            Message="{x:Bind ViewModel.PreviousDownloadText, Mode=OneWay}"
+                            Severity="Informational">
+                            <InfoBar.ActionButton>
+                                <Button Command="{x:Bind ViewModel.RevealPreviousFileCommand}" Content="Show in folder" Visibility="{x:Bind ViewModel.PreviousFileExists, Mode=OneWay}" />
+                            </InfoBar.ActionButton>
+                        </InfoBar>
+                        <!-- Audio -->
+                        <Grid ColumnSpacing="12" Visibility="{x:Bind ViewModel.ShowAudioOptions, Mode=OneWay}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MaxWidth="220" />
+                                <ColumnDefinition Width="*" MaxWidth="220" />
+                                <ColumnDefinition Width="2*" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox
+                                HorizontalAlignment="Stretch"
+                                Header="Format"
+                                ItemsSource="{x:Bind ViewModel.FormatOptions}"
+                                SelectedItem="{x:Bind ViewModel.SelectedFormat, Mode=TwoWay}" />
+                            <ComboBox
+                                Grid.Column="1"
+                                HorizontalAlignment="Stretch"
+                                Header="Quality"
+                                IsEnabled="{x:Bind ViewModel.IsQualityEnabled, Mode=OneWay}"
+                                ItemsSource="{x:Bind ViewModel.QualityOptions}"
+                                SelectedItem="{x:Bind ViewModel.SelectedQuality, Mode=TwoWay}" />
+                            <ComboBox
+                                Grid.Column="2"
+                                HorizontalAlignment="Stretch"
+                                Header="Source audio stream"
+                                ItemsSource="{x:Bind ViewModel.SourceFormats}"
+                                SelectedItem="{x:Bind ViewModel.SelectedSourceFormat, Mode=TwoWay}"
+                                Visibility="{x:Bind ViewModel.ShowSourceFormat, Mode=OneWay}" />
+                        </Grid>
+
+                        <!-- Video -->
+                        <StackPanel Spacing="16" Visibility="{x:Bind ViewModel.IsVideoMode, Mode=OneWay}">
+                            <InfoBar
+                                IsClosable="False"
+                                IsOpen="{x:Bind ViewModel.ShowNoVideoWarning, Mode=OneWay}"
+                                Message="This link has no video stream. Sonic will save the best available file; switch to Audio for music."
+                                Severity="Warning" />
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MaxWidth="180" />
+                                    <ColumnDefinition Width="*" MaxWidth="220" />
+                                    <ColumnDefinition Width="*" MaxWidth="260" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox
+                                    HorizontalAlignment="Stretch"
+                                    AutomationProperties.Name="Video format"
+                                    Header="Format"
+                                    ItemsSource="{x:Bind ViewModel.ContainerOptions}"
+                                    SelectedItem="{x:Bind ViewModel.SelectedContainer, Mode=TwoWay}" />
+                                <ComboBox
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    AutomationProperties.Name="Video quality"
+                                    Header="Quality"
+                                    ItemsSource="{x:Bind ViewModel.VideoQualityOptions}"
+                                    SelectedItem="{x:Bind ViewModel.SelectedVideoQuality, Mode=TwoWay}" />
+                                <ComboBox
+                                    Grid.Column="2"
+                                    HorizontalAlignment="Stretch"
+                                    AutomationProperties.Name="Video codec"
+                                    Header="Codec"
+                                    ItemsSource="{x:Bind ViewModel.VideoCodecOptions}"
+                                    SelectedItem="{x:Bind ViewModel.SelectedVideoCodec, Mode=TwoWay}" />
+                                <StackPanel Grid.Column="3" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="12">
+                                    <CheckBox Content="Embed thumbnail" IsChecked="{x:Bind ViewModel.EmbedThumbnail, Mode=TwoWay}" ToolTipService.ToolTip="Not supported by WebM" />
+                                    <CheckBox Content="Chapters" IsChecked="{x:Bind ViewModel.EmbedChapters, Mode=TwoWay}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Subtitles -->
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MaxWidth="260" />
+                                    <ColumnDefinition Width="*" MaxWidth="180" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <ComboBox
+                                    HorizontalAlignment="Stretch"
+                                    AutomationProperties.Name="Subtitles"
+                                    Header="Subtitles"
+                                    ItemsSource="{x:Bind ViewModel.SubtitleModeOptions}"
+                                    SelectedItem="{x:Bind ViewModel.SelectedSubtitleMode, Mode=TwoWay}" />
+                                <ComboBox
+                                    Grid.Column="1"
+                                    HorizontalAlignment="Stretch"
+                                    AutomationProperties.Name="Subtitle format"
+                                    Header="Subtitle format"
+                                    IsEnabled="{x:Bind ViewModel.IsSubtitleEnabled, Mode=OneWay}"
+                                    ItemsSource="{x:Bind ViewModel.SubtitleFormatOptions}"
+                                    SelectedItem="{x:Bind ViewModel.SelectedSubtitleFormat, Mode=TwoWay}" />
+                                <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Orientation="Horizontal" Spacing="12" Visibility="{x:Bind ViewModel.ShowSubtitleLanguageBox, Mode=OneWay}">
+                                    <TextBox
+                                        MinWidth="200"
+                                        AutomationProperties.Name="Subtitle languages"
+                                        Header="Languages"
+                                        PlaceholderText="en, ru"
+                                        Text="{x:Bind ViewModel.SubtitleLanguagesText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <CheckBox VerticalAlignment="Bottom" Content="Include auto-generated" IsChecked="{x:Bind ViewModel.IncludeAutoSubtitles, Mode=TwoWay}" />
+                                </StackPanel>
+                            </Grid>
+                            <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.ShowSubtitleChoices, Mode=OneWay}">
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Choose subtitle languages" />
+                                <ScrollViewer MaxHeight="150">
+                                    <ItemsRepeater ItemsSource="{x:Bind ViewModel.SubtitleChoices}">
+                                        <ItemsRepeater.Layout>
+                                            <UniformGridLayout MinColumnSpacing="8" MinItemWidth="220" MinRowSpacing="0" />
+                                        </ItemsRepeater.Layout>
+                                        <ItemsRepeater.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:SubtitleChoice">
+                                                <CheckBox Content="{x:Bind Label}" IsChecked="{x:Bind IsSelected, Mode=TwoWay}" />
+                                            </DataTemplate>
+                                        </ItemsRepeater.ItemTemplate>
+                                    </ItemsRepeater>
+                                </ScrollViewer>
+                            </StackPanel>
+                            <TextBlock
+                                Style="{StaticResource SecondaryTextStyle}"
+                                Text="This video has no subtitles."
+                                Visibility="{x:Bind ViewModel.ShowNoSubtitles, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <!-- Destination -->
+                        <StackPanel Spacing="4">
+                            <controls:SaveToPicker
+                                DefaultFolder="{x:Bind ViewModel.DefaultFolder, Mode=OneWay}"
+                                Folder="{x:Bind ViewModel.SaveToFolder, Mode=TwoWay}"
+                                RecentFolders="{x:Bind ViewModel.RecentFolders, Mode=OneWay}" />
+                            <TextBlock
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                Text="{x:Bind ViewModel.FolderError, Mode=OneWay}"
+                                Visibility="{x:Bind ViewModel.HasFolderError, Mode=OneWay}" />
+                        </StackPanel>
+
+                        <!-- File name -->
+                        <StackPanel Spacing="6">
+                            <Grid ColumnSpacing="8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBox
+                                    AutomationProperties.Name="File name template"
+                                    FontFamily="Cascadia Mono, Consolas"
+                                    Header="File name"
+                                    Text="{x:Bind ViewModel.FilenameTemplate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                <Button
+                                    Grid.Column="1"
+                                    VerticalAlignment="Bottom"
+                                    Command="{x:Bind ViewModel.ResetFilenameTemplateCommand}"
+                                    Content="Default" />
+                            </Grid>
+                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind ViewModel.TokensHint, Mode=OneWay}" />
+                            <TextBlock
+                                Foreground="{ThemeResource SystemFillColorCriticalBrush}"
+                                Text="{x:Bind ViewModel.FilenameError, Mode=OneWay}"
+                                TextWrapping="Wrap"
+                                Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.FilenameError), Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.FilenamePreview), Mode=OneWay}">
+                                <Run Text="Will be saved as " /><Run FontFamily="Cascadia Mono, Consolas" Text="{x:Bind ViewModel.FilenamePreview, Mode=OneWay}" />
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Playlist entries -->
+                    <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Spacing="8" Visibility="{x:Bind ViewModel.IsPlaylist, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}">
+                                <Run Text="{x:Bind ViewModel.SelectedPlaylistCount, Mode=OneWay}" /><Run Text=" selected" />
+                            </TextBlock>
+                            <HyperlinkButton Margin="12,0,0,0" Command="{x:Bind ViewModel.SelectAllCommand}" Content="Select all">
+                                <HyperlinkButton.CommandParameter>
+                                    <x:Boolean>True</x:Boolean>
+                                </HyperlinkButton.CommandParameter>
+                            </HyperlinkButton>
+                            <HyperlinkButton Command="{x:Bind ViewModel.SelectAllCommand}" Content="Select none">
+                                <HyperlinkButton.CommandParameter>
+                                    <x:Boolean>False</x:Boolean>
+                                </HyperlinkButton.CommandParameter>
+                            </HyperlinkButton>
+                        </StackPanel>
+                        <ListView
+                            MaxHeight="340"
+                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                            BorderThickness="1"
+                            CornerRadius="6"
+                            ItemsSource="{x:Bind ViewModel.PlaylistItems}"
+                            SelectionMode="None">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="vm:PlaylistItemChoice">
+                                    <Grid Padding="0,6" ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="32" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Button Grid.Column="3" VerticalAlignment="Center" AutomationProperties.Name="Preview" Click="OnPreviewItemClick" Style="{StaticResource SubtleButtonStyle}" Tag="{x:Bind}" ToolTipService.ToolTip="Preview">
+                                            <FontIcon FontSize="12" Glyph="&#xE768;" />
+                                        </Button>
+                                        <CheckBox MinWidth="0" AutomationProperties.Name="{x:Bind Title}" IsChecked="{x:Bind IsSelected, Mode=TwoWay}" />
+                                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind Index}" />
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Title}" />
+                                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind Subtitle}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Analysis actions -->
+            <Grid Margin="0,12,0,0" ColumnSpacing="8" Visibility="{x:Bind ViewModel.HasAnalysis, Mode=OneWay}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind ViewModel.QualityHint, Mode=OneWay}" TextWrapping="Wrap" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                    <Button AutomationProperties.Name="Preview" Command="{x:Bind ViewModel.PreviewAnalysisCommand}" ToolTipService.ToolTip="Listen before downloading" Visibility="{x:Bind ViewModel.IsSingleItem, Mode=OneWay}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon FontSize="14" Glyph="&#xE768;" />
+                            <TextBlock Text="Preview" />
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{x:Bind ViewModel.ClearAnalysisCommand}" Content="Clear" />
+                </StackPanel>
+                <Button
+                    Grid.Column="2"
+                    AutomationProperties.Name="Download" Command="{x:Bind ViewModel.DownloadCommand}"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Visibility="{x:Bind ViewModel.IsSingleItem, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="&#xE896;" />
+                        <TextBlock Text="Download" />
+                    </StackPanel>
+                </Button>
+                <Button
+                    Grid.Column="2"
+                    AutomationProperties.Name="Download selected" Command="{x:Bind ViewModel.DownloadSelectedCommand}"
+                    IsEnabled="{x:Bind helpers:Bind.IsPositive(ViewModel.SelectedPlaylistCount), Mode=OneWay}"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Visibility="{x:Bind ViewModel.IsPlaylist, Mode=OneWay}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon FontSize="14" Glyph="&#xE896;" />
+                        <TextBlock>
+                            <Run Text="Download " /><Run Text="{x:Bind ViewModel.SelectedPlaylistCount, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Active downloads -->
+            <StackPanel Visibility="{x:Bind helpers:Bind.VisibleIfPositive(ViewModel.Downloads.ActiveCount), Mode=OneWay}">
+                <Grid>
+                    <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="Active downloads" />
+                    <HyperlinkButton
+                        Margin="0,20,0,0"
+                        HorizontalAlignment="Right"
+                        Command="{x:Bind ViewModel.NavigateCommand}"
+                        CommandParameter="Downloads"
+                        Content="View all" />
+                </Grid>
+                <ItemsRepeater ItemsSource="{x:Bind ViewModel.Downloads.ActiveItems}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate x:DataType="vm:DownloadItemViewModel">
+                            <controls:DownloadItemView Item="{x:Bind}" />
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </StackPanel>
+
+            <!-- Quick actions -->
+            <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="Quick actions" />
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Button
+                    Grid.Column="4"
+                    AutomationProperties.Name="Download a list quick action"
+                    Command="{x:Bind ViewModel.BatchDownloadCommand}"
+                    Style="{StaticResource ActionCardButtonStyle}">
+                    <StackPanel Spacing="8">
+                        <FontIcon HorizontalAlignment="Left" FontSize="20" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Glyph="&#xE8FD;" />
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Download a list" />
+                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="TXT, CSV, M3U or pasted names" />
+                    </StackPanel>
+                </Button>
+                <Button AutomationProperties.Name="Open music folder" Command="{x:Bind ViewModel.OpenMusicFolderCommand}" Style="{StaticResource ActionCardButtonStyle}">
+                    <StackPanel Spacing="8">
+                        <FontIcon HorizontalAlignment="Left" FontSize="20" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Glyph="&#xE838;" />
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Open music folder" />
+                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Where downloads are saved" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="1" AutomationProperties.Name="Import playlist" Command="{x:Bind ViewModel.ImportSpotifyCommand}" Style="{StaticResource ActionCardButtonStyle}">
+                    <StackPanel Spacing="8">
+                        <FontIcon HorizontalAlignment="Left" FontSize="20" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Glyph="&#xE8B5;" />
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Import playlist" />
+                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="From a Spotify link" />
+                    </StackPanel>
+                </Button>
+                <Button Grid.Column="2" AutomationProperties.Name="Scan library" Command="{x:Bind ViewModel.ScanLibraryCommand}" Style="{StaticResource ActionCardButtonStyle}">
+                    <StackPanel Spacing="8">
+                        <FontIcon HorizontalAlignment="Left" FontSize="20" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Glyph="&#xE895;" />
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Scan library" />
+                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Find new and changed music" />
+                    </StackPanel>
+                </Button>
+                <Button
+                    Grid.Column="3"
+                    AutomationProperties.Name="Browse library"
+                    Command="{x:Bind ViewModel.NavigateCommand}"
+                    CommandParameter="Library"
+                    Style="{StaticResource ActionCardButtonStyle}">
+                    <StackPanel Spacing="8">
+                        <FontIcon HorizontalAlignment="Left" FontSize="20" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" Glyph="&#xE8F1;" />
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="Browse library" />
+                        <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Songs, albums and artists" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
+            <!-- Recently added -->
+            <StackPanel Visibility="{x:Bind ViewModel.HasRecentTracks, Mode=OneWay}">
+                <Grid>
+                    <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="Recently added" />
+                    <HyperlinkButton
+                        Margin="0,20,0,0"
+                        HorizontalAlignment="Right"
+                        Command="{x:Bind ViewModel.NavigateCommand}"
+                        CommandParameter="Library"
+                        Content="Open library" />
+                </Grid>
+                <GridView
+                    IsItemClickEnabled="True"
+                    ItemClick="OnRecentTrackClick"
+                    ItemsSource="{x:Bind ViewModel.RecentTracks}"
+                    ScrollViewer.HorizontalScrollMode="Disabled"
+                    SelectionMode="None">
+                    <GridView.ItemTemplate>
+                        <DataTemplate x:DataType="core:Track">
+                            <StackPanel Width="132" Padding="0,4" Spacing="6" ToolTipService.ToolTip="Play">
+                                <controls:ArtworkImage
+                                    Width="132"
+                                    Height="132"
+                                    DecodeSize="264"
+                                    GlyphSize="32"
+                                    ImageCornerRadius="6"
+                                    Source="{x:Bind ArtworkPath}" />
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Title}" />
+                                    <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind DisplayArtist}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+            </StackPanel>
+
+            <!-- Imported playlists -->
+            <StackPanel Visibility="{x:Bind ViewModel.HasRecentPlaylists, Mode=OneWay}">
+                <TextBlock Style="{StaticResource SectionHeaderTextStyle}" Text="Recently imported playlists" />
+                <GridView
+                    IsItemClickEnabled="True"
+                    ItemClick="OnRecentPlaylistClick"
+                    ItemsSource="{x:Bind ViewModel.RecentPlaylists}"
+                    SelectionMode="None">
+                    <GridView.ItemTemplate>
+                        <DataTemplate x:DataType="coreAbs:PlaylistSummary">
+                            <Grid Width="280" Padding="10" ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <controls:ArtworkImage
+                                    Width="56"
+                                    Height="56"
+                                    DecodeSize="112"
+                                    Glyph="&#xE90B;"
+                                    Source="{x:Bind ArtworkUrl}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource ItemTitleTextStyle}" Text="{x:Bind Name}" />
+                                    <TextBlock Style="{StaticResource SecondaryTextStyle}">
+                                        <Run Text="{x:Bind EntryCount}" /><Run Text=" songs · " /><Run Text="{x:Bind AvailableCount}" /><Run Text=" in library" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                </GridView>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

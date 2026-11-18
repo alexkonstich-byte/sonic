@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Sonic.Core/Sonic.Core.csproj" />
+    <Project Path="src/Sonic/Sonic.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Sonic.Core.Tests/Sonic.Core.Tests.csproj" />
+  </Folder>
+</Solution>

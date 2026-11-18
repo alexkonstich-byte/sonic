@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="Sonic.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Sonic.Controls"
+    xmlns:helpers="using:Sonic.Helpers"
+    xmlns:services="using:Sonic.Services"
+    Title="Sonic">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TitleBar
+            x:Name="AppTitleBar"
+            Title="Sonic"
+            BackRequested="OnBackRequested"
+            IsBackButtonVisible="True"
+            IsPaneToggleButtonVisible="True"
+            PaneToggleRequested="OnPaneToggleRequested">
+            <TitleBar.IconSource>
+                <ImageIconSource ImageSource="ms-appx:///Assets/Sonic64.png" />
+            </TitleBar.IconSource>
+        </TitleBar>
+
+        <NavigationView
+            x:Name="NavView"
+            Grid.Row="1"
+            CompactModeThresholdWidth="720"
+            ExpandedModeThresholdWidth="1100"
+            IsBackButtonVisible="Collapsed"
+            IsPaneToggleButtonVisible="False"
+            IsSettingsVisible="True"
+            IsTitleBarAutoPaddingEnabled="False"
+            OpenPaneLength="256"
+            PaneDisplayMode="Auto"
+            SelectionChanged="OnNavigationSelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Home" Tag="Home">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE80F;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Downloads" Tag="Downloads">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE896;" />
+                    </NavigationViewItem.Icon>
+                    <NavigationViewItem.InfoBadge>
+                        <InfoBadge
+                            Style="{ThemeResource AttentionValueInfoBadgeStyle}"
+                            Visibility="{x:Bind helpers:Bind.VisibleIfPositive(ViewModel.Downloads.ActiveCount), Mode=OneWay}"
+                            Value="{x:Bind ViewModel.Downloads.ActiveCount, Mode=OneWay}" />
+                    </NavigationViewItem.InfoBadge>
+                </NavigationViewItem>
+                <NavigationViewItem Content="YouTube" Tag="YouTube">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE714;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Music Library" Tag="Library">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE8F1;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Playlists" Tag="Playlists">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE90B;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="History" Tag="History">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE81C;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <Frame x:Name="ContentFrame" />
+
+                <controls:PlayerBar Grid.Row="1" Visibility="{x:Bind Player.HasTrack, Mode=OneWay}" />
+
+                <!-- In-app notifications -->
+                <ItemsControl
+                    MaxWidth="560"
+                    Margin="0,12,0,0"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Top"
+                    IsTabStop="False"
+                    ItemsSource="{x:Bind ViewModel.Notifications}">
+                    <ItemsControl.ItemContainerTransitions>
+                        <TransitionCollection>
+                            <AddDeleteThemeTransition />
+                        </TransitionCollection>
+                    </ItemsControl.ItemContainerTransitions>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="services:InAppNotification">
+                            <InfoBar
+                                Title="{x:Bind Title}"
+                                Margin="0,0,0,8"
+                                Background="{ThemeResource SolidBackgroundFillColorTertiaryBrush}"
+                                CloseButtonClick="OnNotificationClosed"
+                                IsOpen="True"
+                                Message="{x:Bind Message}"
+                                Severity="{x:Bind Severity}">
+                                <InfoBar.ActionButton>
+                                    <Button Command="{x:Bind ActionCommand}" Content="{x:Bind ActionText}" Visibility="{x:Bind HasAction}" />
+                                </InfoBar.ActionButton>
+                            </InfoBar>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <controls:StatusBar Grid.Row="2" />
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

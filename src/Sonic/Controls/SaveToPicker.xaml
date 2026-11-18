@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Sonic.Controls.SaveToPicker"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid ColumnSpacing="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <TextBox
+            x:Name="PathBox"
+            AutomationProperties.Name="Save to folder"
+            Header="Save to"
+            PlaceholderText="Folder"
+            TextChanged="OnTextChanged"
+            ToolTipService.ToolTip="Type a folder, pick a recent one, or choose with Browse" />
+        <DropDownButton
+            x:Name="RecentButton"
+            Grid.Column="1"
+            VerticalAlignment="Bottom"
+            AutomationProperties.Name="Recent folders"
+            ToolTipService.ToolTip="Recent folders">
+            <FontIcon FontSize="14" Glyph="&#xE81C;" />
+            <DropDownButton.Flyout>
+                <MenuFlyout x:Name="RecentMenu" Opening="OnRecentOpening" Placement="BottomEdgeAlignedRight" />
+            </DropDownButton.Flyout>
+        </DropDownButton>
+        <Button Grid.Column="2" VerticalAlignment="Bottom" AutomationProperties.Name="Browse for folder" Click="OnBrowseClick">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <FontIcon FontSize="14" Glyph="&#xE838;" />
+                <TextBlock Text="Browse…" />
+            </StackPanel>
+        </Button>
+        <Button
+            x:Name="ResetButton"
+            Grid.Column="3"
+            VerticalAlignment="Bottom"
+            AutomationProperties.Name="Use default folder"
+            Click="OnResetClick"
+            Content="Default"
+            ToolTipService.ToolTip="Use the default folder from Settings" />
+    </Grid>
+</UserControl>
