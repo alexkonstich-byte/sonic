@@ -9,7 +9,8 @@ namespace Sonic.Services;
 
 /// <summary>
 /// Puts Sonic in the Windows Share menu by registering the signed identity package that ships in the install
-/// folder (identity\Sonic.Identity.msix). The package is self-signed, so its certificate is added once to the
+/// folder (identity\Sonic.Identity.msix). The package's only app is SonicShare.exe, which forwards shared links to
+/// Sonic.exe; Sonic.exe itself never carries the identity, so a broken package can't stop it from starting. The package is self-signed, so its certificate is added once to the
 /// machine's Trusted People store (one administrator prompt). Only the installed version supports this.
 /// </summary>
 public sealed partial class ShareIntegrationService : ObservableObject
@@ -33,23 +34,8 @@ public sealed partial class ShareIntegrationService : ObservableObject
     private static string CertificatePath => Path.Combine(IdentityDirectory, "Sonic.Identity.cer");
 
     /// <summary>The identity package exists only in installed release builds.</summary>
-    public bool IsAvailable => File.Exists(PackagePath) && File.Exists(CertificatePath) && App.GetService<UpdateService>().IsInstalled;
-
-    /// <summary>True when this process was started with the package identity (needed for Share).</summary>
-    public static bool HasIdentity
-    {
-        get
-        {
-            try
-            {
-                return Windows.ApplicationModel.Package.Current is not null;
-            }
-            catch (InvalidOperationException)
-            {
-                return false;
-            }
-        }
-    }
+    public bool IsAvailable => File.Exists(PackagePath) && File.Exists(CertificatePath) &&
+                               File.Exists(Path.Combine(AppContext.BaseDirectory, "SonicShare.exe")) && App.GetService<UpdateService>().IsInstalled;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(StatusText), nameof(CanEnable), nameof(CanDisable))]
@@ -67,8 +53,7 @@ public sealed partial class ShareIntegrationService : ObservableObject
     public string StatusText => !IsAvailable
         ? "Available in the installed version of Sonic (Setup.exe)."
         : !IsRegistered ? "Share a link from a browser or another app straight to Sonic. Needs one administrator prompt."
-        : HasIdentity ? "On. Choose Share in a browser or app, then Sonic."
-        : "On. Restart Sonic once so Windows can start it from the Share menu.";
+        : "On. Choose Share in a browser or app, then Sonic.";
 
     private static Windows.ApplicationModel.Package? FindPackage()
     {
@@ -128,7 +113,7 @@ public sealed partial class ShareIntegrationService : ObservableObject
 
             await RegisterAsync();
             Refresh();
-            _notifications.ShowSuccess("Sonic is in the Share menu", "Restart Sonic once; after that, Share › Sonic opens shared links here.");
+            _notifications.ShowSuccess("Sonic is in the Share menu", "Share › Sonic in a browser or app now opens the link here.");
         }
         catch (Exception ex)
         {
@@ -163,7 +148,7 @@ public sealed partial class ShareIntegrationService : ObservableObject
                     await RunElevatedAsync("certutil.exe", $"-delstore TrustedPeople {cert.Thumbprint}");
             }
 
-            _notifications.ShowInfo("Removed from the Share menu", "Restart Sonic to finish.");
+            _notifications.ShowInfo("Removed from the Share menu", "Sonic no longer appears when sharing.");
         }
         catch (Exception ex)
         {

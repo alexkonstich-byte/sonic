@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppLifecycle;
@@ -23,7 +22,6 @@ public static class Program
 
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
-        PendingCommand = ReadShareActivation();
         if (RedirectToExistingInstance()) return 0;
 
         Application.Start(static _ =>
@@ -51,45 +49,6 @@ public static class Program
         }
     }
 
-    /// <summary>A sonic:// command from a Share activation, handled after startup.</summary>
-    public static string? PendingCommand { get; private set; }
-
-    /// <summary>
-    /// Started from the Windows Share menu: read the shared link, close the share UI and turn it into a
-    /// sonic://open command (which opens the link on the Home page).
-    /// </summary>
-    private static string? ReadShareActivation()
-    {
-        try
-        {
-            var activation = AppInstance.GetCurrent().GetActivatedEventArgs();
-            if (activation.Kind != ExtendedActivationKind.ShareTarget ||
-                activation.Data is not Windows.ApplicationModel.Activation.IShareTargetActivatedEventArgs share) return null;
-
-            var operation = share.ShareOperation;
-            var link = Task.Run(async () =>
-            {
-                var data = operation.Data;
-                if (data.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.WebLink))
-                    return (await data.GetWebLinkAsync()).AbsoluteUri;
-                if (data.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.Text))
-                {
-                    var text = await data.GetTextAsync();
-                    var match = System.Text.RegularExpressions.Regex.Match(text, @"https?://\S+");
-                    return match.Success ? match.Value : null;
-                }
-
-                return null;
-            }).GetAwaiter().GetResult();
-            operation.ReportCompleted();
-            return link is null ? "sonic://show" : "sonic://open?url=" + Uri.EscapeDataString(link);
-        }
-        catch (Exception)
-        {
-            return null;
-        }
-    }
-
     private static bool RedirectToExistingInstance()
     {
         var mainInstance = AppInstance.FindOrRegisterForKey(InstanceKey);
@@ -98,13 +57,6 @@ public static class Program
             // A second launch (or a sonic:// link, or a toast) is forwarded here.
             mainInstance.Activated += (_, e) => App.OnRedirectedActivation(e);
             return false;
-        }
-
-        // A share is forwarded as a normal launch with the sonic:// command (share data can't be redirected).
-        if (PendingCommand is { } command && Environment.ProcessPath is { } exe)
-        {
-            Process.Start(new ProcessStartInfo(exe, $"\"{command}\"") { UseShellExecute = false });
-            return true;
         }
 
         var activation = AppInstance.GetCurrent().GetActivatedEventArgs();

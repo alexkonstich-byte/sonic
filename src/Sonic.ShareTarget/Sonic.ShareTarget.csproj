@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    SonicShare.exe: the only executable bound to the Sonic.Identity package. Windows starts it from the Share menu;
+    it reads the shared link and hands it to Sonic.exe as a sonic://open command. Keeping the identity on this tiny
+    helper means a missing or broken identity package can never stop Sonic itself from starting.
+    The release script publishes it into the same folder as Sonic.exe.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <AssemblyName>SonicShare</AssemblyName>
+    <RootNamespace>Sonic.ShareTarget</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\Sonic\Assets\Sonic.ico</ApplicationIcon>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+</Project>

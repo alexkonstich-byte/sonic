@@ -227,7 +227,7 @@ public partial class App : Application
             GetService<GameModeService>().Start();
 
             // Launched by a sonic:// link while Sonic wasn't running.
-            await GetService<IActivationService>().HandleArgumentsAsync(Program.PendingCommand ?? string.Join(' ', Environment.GetCommandLineArgs().Skip(1)));
+            await GetService<IActivationService>().HandleArgumentsAsync(string.Join(' ', Environment.GetCommandLineArgs().Skip(1)));
             await GetService<ShareIntegrationService>().UpdateRegistrationAsync();
 
             var library = GetService<ILibraryService>();

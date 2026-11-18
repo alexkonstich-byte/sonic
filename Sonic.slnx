@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Sonic.Core/Sonic.Core.csproj" />
     <Project Path="src/Sonic/Sonic.csproj" />
+    <Project Path="src/Sonic.ShareTarget/Sonic.ShareTarget.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Sonic.Core.Tests/Sonic.Core.Tests.csproj" />

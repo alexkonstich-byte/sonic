@@ -3,13 +3,9 @@
   <assemblyIdentity version="1.0.0.0" name="Sonic.app"/>
 
   <!--
-    Links Sonic.exe to the optional identity package (Identity\AppxManifest.xml). Until that package is registered
-    (Settings › Desktop integration › Share menu) this has no effect and Sonic runs as a normal desktop app.
+    Sonic.exe deliberately has no <msix> identity element: if the identity package is ever missing or broken,
+    Windows refuses to start an exe that references it. The Share menu goes through SonicShare.exe instead.
   -->
-  <msix xmlns="urn:schemas-microsoft-com:msix.v1"
-        publisher="CN=Sonic Local Signing"
-        packageName="Sonic.Identity"
-        applicationId="Sonic" />
 
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>

@@ -91,6 +91,11 @@ try {
         "-p:Version=$Version" "-p:SonicUpdateFeed=$Feed"
     if ($LASTEXITCODE) { throw "dotnet publish failed" }
 
+    # The Share menu helper shares the self-contained runtime that Sonic already ships in the same folder.
+    dotnet publish src\Sonic.ShareTarget\Sonic.ShareTarget.csproj -c Release -r win-x64 --self-contained -o $publishDir -nologo -v q `
+        "-p:Version=$Version"
+    if ($LASTEXITCODE) { throw "dotnet publish (SonicShare) failed" }
+
     Write-Host "Building the identity package (Share menu)…"
     New-IdentityPackage -Version $Version -OutputDir (Join-Path $publishDir 'identity')
 
