@@ -25,11 +25,20 @@ public sealed class PlaylistDownloadPlan
     /// <summary>Already waiting or downloading in the queue.</summary>
     public List<PlaylistEntry> AlreadyQueued { get; } = [];
     public List<PlaylistEntry> ToDownload { get; } = [];
+    /// <summary>1-based position of every entry in the playlist (entry id → number), for numbered file names.</summary>
+    public Dictionary<int, int> Numbers { get; } = [];
+    public int TotalEntries => Numbers.Count;
 }
 
-public sealed record PlaylistDownloadOptions(string Folder, AudioFormat Format, AudioQuality Quality, string FilenameTemplate);
+/// <param name="NumberByPosition">Prefix file names with the song's position in the playlist ("01 - Artist - Title").</param>
+public sealed record PlaylistDownloadOptions(string Folder, AudioFormat Format, AudioQuality Quality, string FilenameTemplate, bool NumberByPosition = false);
 
-public sealed record PlaylistQueueResult(int Queued, IReadOnlyList<PlaylistEntry> NotFound);
+/// <param name="NotFound">YouTube had no matching upload.</param>
+/// <param name="Failed">The search itself failed (network, YouTube blocked…); worth trying again later.</param>
+public sealed record PlaylistQueueResult(int Queued, IReadOnlyList<PlaylistEntry> NotFound, IReadOnlyList<PlaylistEntry> Failed)
+{
+    public PlaylistQueueResult(int queued, IReadOnlyList<PlaylistEntry> notFound) : this(queued, notFound, []) { }
+}
 
 /// <summary>
 /// Matches playlist entries against audio files: by normalized "artist|title", then ignoring version suffixes
@@ -125,8 +134,10 @@ public sealed class PlaylistDownloadService(
             .ToHashSet();
 
         var plan = new PlaylistDownloadPlan { PlaylistId = playlistId, Folder = folder, ScannedFiles = files.Count };
+        var number = 0;
         foreach (var entry in playlist.Entries.OrderBy(e => e.Position))
         {
+            plan.Numbers[entry.Id] = ++number;
             if (entry.Track is { } track && File.Exists(track.FilePath)) plan.InLibrary.Add(entry);
             else if ((index.Find(entry.Artist, entry.Title, entry.DurationSeconds) ?? libraryIndex.Find(entry.Artist, entry.Title, entry.DurationSeconds)) is { } file)
                 plan.FoundInFolder.Add(new LocalMatch(entry, file.Path));
@@ -203,22 +214,64 @@ public sealed class PlaylistDownloadService(
     public async Task<PlaylistQueueResult> QueueMissingAsync(PlaylistDownloadPlan plan, PlaylistDownloadOptions options, IProgress<int>? searched = null, CancellationToken cancellationToken = default)
     {
         var notFound = new List<PlaylistEntry>();
+        var failed = new List<PlaylistEntry>();
         var queued = 0;
         var done = 0;
         using var gate = new SemaphoreSlim(SearchParallelism);
-        await Task.WhenAll(plan.ToDownload.Select(async entry =>
+        var digits = Math.Max(2, plan.TotalEntries.ToString(System.Globalization.CultureInfo.InvariantCulture).Length);
+
+        // Searches run in parallel, but each song is queued only after the one before it, so downloads start in
+        // playlist order. A song that isn't found doesn't hold up the rest.
+        var ordered = plan.ToDownload.OrderBy(e => plan.Numbers.GetValueOrDefault(e.Id, int.MaxValue)).ToList();
+        var previous = Task.CompletedTask;
+        var tasks = new List<Task>(ordered.Count);
+        foreach (var entry in ordered)
         {
+            var before = previous;
+            var task = ProcessAsync(entry, before);
+            tasks.Add(task);
+            previous = task;
+        }
+
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+        return new PlaylistQueueResult(queued, notFound, failed);
+
+        async Task ProcessAsync(PlaylistEntry entry, Task before)
+        {
+            MediaInfo? best = null;
+            Exception? error = null;
             await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
                 var query = string.IsNullOrWhiteSpace(entry.Artist) ? entry.Title : $"{entry.Artist} - {entry.Title}";
                 var results = await ytDlp.SearchAsync(query + " audio", 5, cancellationToken).ConfigureAwait(false);
-                if (PickBest(entry, results) is not { } best)
+                best = PickBest(entry, results);
+            }
+            catch (YtDlpException ex)
+            {
+                error = ex;
+            }
+            finally
+            {
+                gate.Release();
+            }
+
+            // Wait for the previous song to be queued (or skipped); its outcome doesn't matter here.
+            try { await before.ConfigureAwait(false); } catch (Exception) when (!cancellationToken.IsCancellationRequested) { }
+            cancellationToken.ThrowIfCancellationRequested();
+
+            try
+            {
+                if (error is not null) throw error;
+                if (best is null)
                 {
                     lock (notFound) notFound.Add(entry);
                     return;
                 }
 
+                var template = options.NumberByPosition && plan.Numbers.TryGetValue(entry.Id, out var n)
+                    ? FileNameHelper.WithNumberPrefix(options.FilenameTemplate, n, digits)
+                    : options.FilenameTemplate;
                 await queue.EnqueueAsync(new DownloadRequest
                 {
                     Url = best.Url,
@@ -229,7 +282,7 @@ public sealed class PlaylistDownloadService(
                     DurationSeconds = best.DurationSeconds,
                     PlaylistEntryId = entry.Id,
                     OutputDirectory = options.Folder,
-                    FilenameTemplate = options.FilenameTemplate,
+                    FilenameTemplate = template,
                     Format = options.Format,
                     Quality = options.Quality,
                     Hints = new MetadataHints
@@ -247,17 +300,15 @@ public sealed class PlaylistDownloadService(
             }
             catch (Exception ex) when (ex is YtDlpException or ArgumentException or InvalidOperationException)
             {
+                // Not "not found": the search or the queue failed, so the song may well exist.
                 logger.LogWarning(ex, "Couldn't queue {Artist} - {Title}", entry.Artist, entry.Title);
-                lock (notFound) notFound.Add(entry);
+                lock (failed) failed.Add(entry);
             }
             finally
             {
-                gate.Release();
                 searched?.Report(Interlocked.Increment(ref done));
             }
-        })).ConfigureAwait(false);
-
-        return new PlaylistQueueResult(queued, notFound);
+        }
     }
 
     /// <summary>The closest-length result, skipping karaoke/cover/live versions the playlist didn't ask for.</summary>

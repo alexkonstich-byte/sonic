@@ -26,6 +26,17 @@ public sealed class SpotifyTrack
     public double DurationSeconds { get; init; }
     public string? ImageUrl { get; init; }
     public string? Isrc { get; init; }
+    /// <summary>When the user liked the song (Liked Songs only).</summary>
+    public DateTime? AddedAt { get; init; }
 
     public string ArtistText => string.Join(", ", Artists);
+
+    public SpotifyTrack WithAddedAt(DateTime? addedAt) => new()
+    {
+        Id = Id, Name = Name, Artists = Artists, Album = Album, AlbumArtist = AlbumArtist, TrackNumber = TrackNumber,
+        Year = Year, DurationSeconds = DurationSeconds, ImageUrl = ImageUrl, Isrc = Isrc, AddedAt = addedAt,
+    };
 }
+
+/// <summary>The user's Liked Songs, newest first.</summary>
+public sealed record SpotifyLikedSongs(int Total, IReadOnlyList<SpotifyTrack> Tracks);

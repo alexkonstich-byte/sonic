@@ -158,6 +158,7 @@ public partial class App : Application
         builder.Services.AddSingleton<DiscordPresenceService>();
         builder.Services.AddSingleton<UpdateService>();
         builder.Services.AddSingleton<ShareIntegrationService>();
+        builder.Services.AddSingleton<LikedSongsService>();
 
         // View models: page view models are singletons so state survives navigation.
         builder.Services.AddSingleton<DownloadsStore>();
@@ -199,6 +200,7 @@ public partial class App : Application
             GetService<AutoRetryService>().Start();
             GetService<DiscordPresenceService>().Start();
             GetService<UpdateService>().Start();
+            GetService<LikedSongsService>().Start();
             ProtocolRegistration.Apply(settings.ProtocolHandler);
             GetService<ISettingsService>().Changed += (_, s) =>
             {

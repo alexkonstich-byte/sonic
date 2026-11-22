@@ -110,10 +110,40 @@ public sealed class PlaylistRepository(IDbContextFactory<SonicDbContext> factory
     {
         await using var db = await factory.CreateDbContextAsync(cancellationToken).ConfigureAwait(false);
         await using var tx = await db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
-        await db.PlaylistEntries.Where(e => e.PlaylistId == playlistId).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+
+        // Entries that are still there keep their id: queued downloads refer to it (PlaylistEntryId) to link
+        // the finished file and to know the song is already queued. Rows are matched by ExternalId, in order,
+        // so a song that appears twice keeps both rows.
+        var existing = await db.PlaylistEntries.Where(e => e.PlaylistId == playlistId)
+            .OrderBy(e => e.Position).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var reusable = existing.Where(e => e.ExternalId is not null)
+            .GroupBy(e => e.ExternalId!)
+            .ToDictionary(g => g.Key, g => new Queue<PlaylistEntry>(g));
+        var kept = new HashSet<int>();
         var pos = 0;
         foreach (var e in entries)
         {
+            if (e.ExternalId is not null && reusable.TryGetValue(e.ExternalId, out var queue) && queue.TryDequeue(out var row))
+            {
+                row.Title = e.Title;
+                row.Artist = e.Artist;
+                row.Album = e.Album;
+                row.AlbumArtist = e.AlbumArtist;
+                row.TrackNumber = e.TrackNumber;
+                row.Year = e.Year;
+                row.DurationSeconds = e.DurationSeconds;
+                row.ArtworkUrl = e.ArtworkUrl;
+                row.Isrc = e.Isrc;
+                row.TrackId = e.TrackId ?? row.TrackId;
+                row.Position = pos++;
+                kept.Add(row.Id);
+                e.Id = row.Id;
+                e.PlaylistId = playlistId;
+                e.Position = row.Position;
+                e.TrackId = row.TrackId;
+                continue;
+            }
+
             e.Id = 0;
             e.PlaylistId = playlistId;
             e.Position = pos++;
@@ -121,6 +151,7 @@ public sealed class PlaylistRepository(IDbContextFactory<SonicDbContext> factory
             db.PlaylistEntries.Add(e);
         }
 
+        db.PlaylistEntries.RemoveRange(existing.Where(e => !kept.Contains(e.Id)));
         await TouchAsync(db, playlistId, cancellationToken).ConfigureAwait(false);
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         await tx.CommitAsync(cancellationToken).ConfigureAwait(false);

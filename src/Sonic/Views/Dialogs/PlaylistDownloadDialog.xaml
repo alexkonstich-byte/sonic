@@ -59,6 +59,10 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12">
             <ComboBox MinWidth="170" AutomationProperties.Name="Audio format" Header="Format" ItemsSource="{x:Bind ViewModel.FormatOptions}" SelectedItem="{x:Bind ViewModel.SelectedFormat, Mode=TwoWay}" />
             <ComboBox MinWidth="200" AutomationProperties.Name="Audio quality" Header="Quality" ItemsSource="{x:Bind ViewModel.QualityOptions}" SelectedItem="{x:Bind ViewModel.SelectedQuality, Mode=TwoWay}" />
+            <StackPanel VerticalAlignment="Bottom" Spacing="0">
+                <CheckBox Content="Number files in playlist order" IsChecked="{x:Bind ViewModel.NumberByPosition, Mode=TwoWay}" ToolTipService.ToolTip="Songs are downloaded in playlist order and named by their position, so folders and players list them like the playlist." />
+                <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind ViewModel.NumberingExample, Mode=OneWay}" />
+            </StackPanel>
         </StackPanel>
 
         <!-- Status -->

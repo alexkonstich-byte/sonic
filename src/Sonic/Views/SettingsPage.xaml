@@ -3,6 +3,7 @@
     x:Class="Sonic.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:Sonic.Controls"
     xmlns:core="using:Sonic.Core.Models"
     xmlns:helpers="using:Sonic.Helpers"
     xmlns:services="using:Sonic.Services"
@@ -605,6 +606,36 @@
                                 </StackPanel>
                                 <TextBlock Text="{x:Bind ViewModel.SpotifyStatus, Mode=OneWay}" TextWrapping="Wrap" Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.SpotifyStatus), Mode=OneWay}" />
                                 <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="The secret is encrypted for your Windows account." />
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical" Header="Your Spotify account" Description="{x:Bind ViewModel.Liked.AccountText, Mode=OneWay}">
+                            <StackPanel MaxWidth="560" HorizontalAlignment="Left" Spacing="8">
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap">
+                                    Needed for your Liked Songs. Add this Redirect URI to your app in the Spotify Developer Dashboard (Edit settings › Redirect URIs), then sign in. Sonic only reads your library; it can't change anything.
+                                </TextBlock>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBox MinWidth="300" FontFamily="Cascadia Mono, Consolas" IsReadOnly="True" Text="{x:Bind ViewModel.Liked.RedirectUri}" />
+                                    <Button Command="{x:Bind ViewModel.CopyRedirectUriCommand}" Content="Copy" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button AutomationProperties.Name="Sign in with Spotify" Command="{x:Bind ViewModel.Liked.SignInCommand}" Content="Sign in with Spotify" IsEnabled="{x:Bind ViewModel.IsSpotifyConfigured, Mode=OneWay}" Style="{StaticResource AccentButtonStyle}" Visibility="{x:Bind ViewModel.Liked.IsSignedOut, Mode=OneWay}" />
+                                    <Button Command="{x:Bind ViewModel.Liked.CancelSignInCommand}" Content="Cancel" Visibility="{x:Bind ViewModel.Liked.IsBusy, Mode=OneWay}" />
+                                    <Button AutomationProperties.Name="Sign out of Spotify" Command="{x:Bind ViewModel.Liked.SignOutCommand}" Content="Sign out" Visibility="{x:Bind ViewModel.Liked.IsSignedIn, Mode=OneWay}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </toolkit:SettingsCard>
+                        <toolkit:SettingsCard HorizontalContentAlignment="Stretch" ContentAlignment="Vertical" Header="Download my liked songs automatically" Description="{x:Bind ViewModel.Liked.Status, Mode=OneWay}" IsEnabled="{x:Bind ViewModel.Liked.IsSignedIn, Mode=OneWay}">
+                            <StackPanel HorizontalAlignment="Stretch" Spacing="10">
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <ToggleSwitch AutomationProperties.Name="Download my liked songs automatically" IsOn="{x:Bind ViewModel.LikedSync, Mode=TwoWay}" />
+                                    <ComboBox MinWidth="260" VerticalAlignment="Center" AutomationProperties.Name="Which liked songs" ItemsSource="{x:Bind ViewModel.LikedModes}" SelectedIndex="{x:Bind ViewModel.LikedModeIndex, Mode=TwoWay}" />
+                                    <Button AutomationProperties.Name="Sync liked songs now" Command="{x:Bind ViewModel.Liked.SyncNowCommand}" Content="Check now" />
+                                    <ProgressRing Width="16" Height="16" IsActive="{x:Bind ViewModel.Liked.IsBusy, Mode=OneWay}" />
+                                </StackPanel>
+                                <controls:SaveToPicker DefaultFolder="{x:Bind ViewModel.LikedDefaultFolder}" Folder="{x:Bind ViewModel.LikedFolder, Mode=TwoWay}" RecentFolders="{x:Bind ViewModel.LikedRecentFolders}" />
+                                <TextBlock Style="{StaticResource SecondaryTextStyle}" TextWrapping="Wrap">
+                                    Songs already in this folder or your library are linked, not downloaded again. They appear in the Liked Songs playlist; downloads use your default audio format and follow pause and game mode.
+                                </TextBlock>
                             </StackPanel>
                         </toolkit:SettingsCard>
                     </toolkit:SettingsExpander.Items>

@@ -612,7 +612,8 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
             folder,
             IsVideoMode ? _settings.Current.DefaultFormat : SelectedFormat.Value,
             IsVideoMode ? _settings.Current.DefaultQuality : SelectedQuality.Value,
-            template);
+            template,
+            _settings.Current.NumberPlaylistDownloads);
 
         _analyzeCts?.Cancel();
         _analyzeCts = new CancellationTokenSource();
@@ -646,8 +647,11 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
                 parts.Add($"{r.NotFound.Count} not found on YouTube ({names}{(r.NotFound.Count > 3 ? ", …" : string.Empty)}). Open the playlist and use Find source on those");
             }
 
+            if (r.Failed.Count > 0)
+                parts.Add($"{r.Failed.Count} couldn't be searched (check your connection or zapret) — paste the link again to retry them");
+
             var title = $"\"{r.Playlist.Name}\"";
-            if (r.Queued == 0 && r.NotFound.Count == 0)
+            if (r.Queued == 0 && r.NotFound.Count == 0 && r.Failed.Count == 0)
                 _notifications.ShowInfo(title, $"Nothing new to download: {string.Join(" · ", parts)}.");
             else if (r.Queued == 0)
                 _notifications.ShowWarning(title, string.Join(" · ", parts) + ".");

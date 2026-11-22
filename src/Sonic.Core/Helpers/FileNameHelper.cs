@@ -82,6 +82,17 @@ public static class FileNameHelper
         return null;
     }
 
+    /// <summary>
+    /// Puts a playlist number in front of the file name part of a template:
+    /// "{artist} - {title}" → "07 - {artist} - {title}", "{album}/{title}" → "{album}/07 - {title}".
+    /// </summary>
+    public static string WithNumberPrefix(string template, int number, int digits = 2)
+    {
+        var prefix = number.ToString(new string('0', Math.Clamp(digits, 1, 6)), System.Globalization.CultureInfo.InvariantCulture) + " - ";
+        var cut = template.LastIndexOfAny(['/', '\\']) + 1;
+        return template[..cut] + prefix + template[cut..].TrimStart();
+    }
+
     /// <summary>Expands a template into a relative path (without extension). Folder separators are allowed.</summary>
     public static string ExpandTemplate(string? template, TrackMetadata metadata, string? uploader, string? id)
     {

@@ -12,7 +12,11 @@ public sealed record SpotifyDownloadResult(
     int Linked,
     int AlreadyQueued,
     int Queued,
-    IReadOnlyList<PlaylistEntry> NotFound);
+    IReadOnlyList<PlaylistEntry> NotFound)
+{
+    /// <summary>Songs whose YouTube search failed (network, YouTube blocked); downloading again retries them.</summary>
+    public IReadOnlyList<PlaylistEntry> Failed { get; init; } = [];
+}
 
 public interface ISpotifyDownloadService
 {
@@ -53,7 +57,7 @@ public sealed class SpotifyDownloadService(
         }
 
         var queued = 0;
-        IReadOnlyList<PlaylistEntry> notFound = [];
+        IReadOnlyList<PlaylistEntry> notFound = [], failed = [];
         if (plan.ToDownload.Count > 0)
         {
             var total = plan.ToDownload.Count;
@@ -62,11 +66,12 @@ public sealed class SpotifyDownloadService(
             var result = await playlistDownloads.QueueMissingAsync(plan, options, searched, cancellationToken).ConfigureAwait(false);
             queued = result.Queued;
             notFound = result.NotFound;
+            failed = result.Failed;
         }
 
         logger.LogInformation("Spotify download \"{Name}\": {Total} songs; {Lib} in library, {Linked} linked, {AlreadyQueued} already queued, {Queued} queued, {NotFound} not found",
             collection.Name, collection.Tracks.Count, plan.InLibrary.Count, linked, plan.AlreadyQueued.Count, queued, notFound.Count);
 
-        return new SpotifyDownloadResult(playlist, collection.Tracks.Count, plan.InLibrary.Count, linked, plan.AlreadyQueued.Count, queued, notFound);
+        return new SpotifyDownloadResult(playlist, collection.Tracks.Count, plan.InLibrary.Count, linked, plan.AlreadyQueued.Count, queued, notFound) { Failed = failed };
     }
 }

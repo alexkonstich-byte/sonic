@@ -117,8 +117,20 @@ public sealed class LibraryService : ILibraryService
 
             await _tracks.UpsertManyAsync(batch, cancellationToken).ConfigureAwait(false);
 
-            // Drop entries whose files have disappeared.
-            var missing = index.Where(kv => !File.Exists(kv.Key)).Select(kv => kv.Value.Id).ToList();
+            // Drop entries whose files have disappeared, but not ones on a drive, share or music folder that is
+            // offline right now (unplugged USB disk, sleeping NAS): they come back, with favorites and playlist links.
+            var unavailable = UnavailableLocations();
+            var rootAvailable = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            var missing = new List<int>();
+            var offline = 0;
+            foreach (var (path, entry) in index)
+            {
+                // Checked first: File.Exists on an unreachable share can take seconds per file.
+                if (!IsLocationAvailable(path, unavailable, rootAvailable)) offline++;
+                else if (!File.Exists(path)) missing.Add(entry.Id);
+            }
+
+            if (offline > 0) _logger.LogInformation("Skipped {Count} tracks on drives or folders that are offline", offline);
             await _tracks.DeleteAsync(missing, cancellationToken).ConfigureAwait(false);
             removed = missing.Count;
 
@@ -131,6 +143,40 @@ public sealed class LibraryService : ILibraryService
             _scanGate.Release();
             if (added + updated + removed > 0) LibraryChanged?.Invoke(this, new LibraryChangedEventArgs());
         }
+    }
+
+    /// <summary>Configured music folders (and the download folder) that don't exist right now.</summary>
+    private List<string> UnavailableLocations()
+    {
+        var s = _settings.Current;
+        return s.MusicFolders.Append(s.DownloadDirectory)
+            .Where(f => !string.IsNullOrWhiteSpace(f) && !Directory.Exists(f))
+            .Select(f => Path.TrimEndingDirectorySeparator(Path.GetFullPath(f)) + Path.DirectorySeparatorChar)
+            .ToList();
+    }
+
+    /// <summary>
+    /// False when the file's drive or share root is unreachable, or it lies in a configured folder that's missing:
+    /// then a missing file means "offline", not "deleted".
+    /// </summary>
+    internal static bool IsLocationAvailable(string filePath, IReadOnlyList<string> unavailableFolders, Dictionary<string, bool>? rootCache = null)
+    {
+        if (unavailableFolders.Any(f => filePath.StartsWith(f, StringComparison.OrdinalIgnoreCase))) return false;
+        string? root;
+        try
+        {
+            root = Path.GetPathRoot(filePath);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(root)) return false;
+        if (rootCache is not null && rootCache.TryGetValue(root, out var known)) return known;
+        var available = Directory.Exists(root);
+        if (rootCache is not null) rootCache[root] = available;
+        return available;
     }
 
     private IEnumerable<string> EnumerateAudioFiles(string root)

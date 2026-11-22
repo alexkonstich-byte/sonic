@@ -226,9 +226,9 @@ public sealed partial class SpotifyService(
         };
     }
 
-    private async Task<JsonDocument> GetJsonAsync(string relativeOrAbsoluteUrl, CancellationToken ct, bool retried = false)
+    private async Task<JsonDocument> GetJsonAsync(string relativeOrAbsoluteUrl, CancellationToken ct, bool retried = false, bool user = false)
     {
-        var token = await GetTokenAsync(ct).ConfigureAwait(false);
+        var token = user ? await GetUserTokenAsync(ct).ConfigureAwait(false) : await GetTokenAsync(ct).ConfigureAwait(false);
         var http = httpFactory.CreateClient(DependencyService.HttpClientName);
         var url = relativeOrAbsoluteUrl.StartsWith("https://", StringComparison.Ordinal) ? relativeOrAbsoluteUrl : ApiBase + relativeOrAbsoluteUrl;
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
@@ -249,8 +249,9 @@ public sealed partial class SpotifyService(
         {
             if (response.StatusCode == HttpStatusCode.Unauthorized && !retried)
             {
-                _token = null;
-                return await GetJsonAsync(relativeOrAbsoluteUrl, ct, retried: true).ConfigureAwait(false);
+                if (user) _userToken = null;
+                else _token = null;
+                return await GetJsonAsync(relativeOrAbsoluteUrl, ct, retried: true, user: user).ConfigureAwait(false);
             }
 
             if (response.StatusCode == (HttpStatusCode)429)
@@ -259,7 +260,7 @@ public sealed partial class SpotifyService(
                 if (!retried && wait < TimeSpan.FromSeconds(30))
                 {
                     await Task.Delay(wait, ct).ConfigureAwait(false);
-                    return await GetJsonAsync(relativeOrAbsoluteUrl, ct, retried: true).ConfigureAwait(false);
+                    return await GetJsonAsync(relativeOrAbsoluteUrl, ct, retried: true, user: user).ConfigureAwait(false);
                 }
 
                 throw new SpotifyException("Spotify is rate limiting requests. Try again in a minute.", 429);

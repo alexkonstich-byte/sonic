@@ -25,6 +25,9 @@ public sealed class AppSettings
 
     public List<DownloadPreset> Presets { get; set; } = DownloadPreset.Defaults();
 
+    /// <summary>"Download all" names files by playlist position ("01 - Artist - Title"). Remembered from the dialog.</summary>
+    public bool NumberPlaylistDownloads { get; set; }
+
     /// <summary>Pause downloads while a Steam game is running.</summary>
     public bool PauseWhileGaming { get; set; } = true;
 
@@ -93,6 +96,19 @@ public sealed class AppSettings
     public string? SpotifyClientId { get; set; }
     /// <summary>DPAPI-protected (current user) Spotify client secret, base64 encoded.</summary>
     public string? SpotifyClientSecretProtected { get; set; }
+    /// <summary>DPAPI-protected refresh token of the signed-in Spotify account.</summary>
+    public string? SpotifyRefreshTokenProtected { get; set; }
+    public string? SpotifyUserName { get; set; }
+
+    /// <summary>Download newly liked Spotify songs automatically.</summary>
+    public bool SpotifyLikedSync { get; set; }
+    /// <summary>Folder for liked songs; null uses the download folder.</summary>
+    public string? SpotifyLikedSyncFolder { get; set; }
+    /// <summary>Only songs liked after this time are downloaded; null downloads all liked songs.</summary>
+    public DateTime? SpotifyLikedSyncFrom { get; set; }
+    public DateTime? SpotifyLikedLastSync { get; set; }
+    /// <summary>Spotify ids that couldn't be found on YouTube, so they aren't searched again every sync.</summary>
+    public List<string> SpotifyLikedNotFound { get; set; } = [];
     public string? YtDlpPathOverride { get; set; }
     public string? FfmpegPathOverride { get; set; }
     public bool CheckForToolUpdates { get; set; } = true;
@@ -148,6 +164,7 @@ public sealed class AppSettings
         copy.RecentFolders = [.. RecentFolders];
         copy.Presets = [.. Presets];
         copy.GameModeIgnoredApps = [.. GameModeIgnoredApps];
+        copy.SpotifyLikedNotFound = [.. SpotifyLikedNotFound];
         return copy;
     }
 }

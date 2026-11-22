@@ -285,6 +285,46 @@ public sealed partial class SettingsViewModel : ObservableObject, INavigationAwa
 
     public ShareIntegrationService Share { get; } = App.GetService<ShareIntegrationService>();
 
+    // Spotify liked songs
+    public LikedSongsService Liked { get; } = App.GetService<LikedSongsService>();
+    public IReadOnlyList<string> LikedModes { get; } = ["Only songs I like from now on", "All my liked songs"];
+    [ObservableProperty] private bool _likedSync;
+    [ObservableProperty] private int _likedModeIndex;
+    [ObservableProperty] private string _likedFolder = string.Empty;
+    public string LikedDefaultFolder => _settings.Current.DownloadDirectory;
+    public IReadOnlyList<string> LikedRecentFolders => _settings.Current.RecentFolders.ToList();
+
+    partial void OnLikedSyncChanged(bool value)
+    {
+        if (_loading) return;
+        _ = SaveAsync(s =>
+        {
+            s.SpotifyLikedSync = value;
+            // Starting fresh: "from now on" means likes after this moment.
+            if (value && LikedModeIndex == 0 && s.SpotifyLikedSyncFrom is null) s.SpotifyLikedSyncFrom = DateTime.UtcNow;
+        }).ContinueWith(_ => _dispatcher.Post(() =>
+        {
+            if (value) _ = Liked.SyncAsync(userInitiated: true);
+        }), TaskScheduler.Default);
+    }
+
+    partial void OnLikedModeIndexChanged(int value) => Save(s => s.SpotifyLikedSyncFrom = value == 1 ? null : s.SpotifyLikedSyncFrom ?? DateTime.UtcNow);
+
+    partial void OnLikedFolderChanged(string value)
+    {
+        if (Sonic.Core.Helpers.FileNameHelper.ValidateDirectory(value) is not null) return;
+        Save(s => s.SpotifyLikedSyncFolder = string.IsNullOrWhiteSpace(value) || string.Equals(value.Trim(), s.DownloadDirectory, StringComparison.OrdinalIgnoreCase) ? null : value.Trim());
+    }
+
+    [RelayCommand]
+    private void CopyRedirectUri()
+    {
+        var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        package.SetText(Liked.RedirectUri);
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+        _notifications.ShowInfo("Copied", Liked.RedirectUri);
+    }
+
     // Discord
     [ObservableProperty] private bool _discordPresence;
     [ObservableProperty] private string _discordClientId = string.Empty;
@@ -708,6 +748,9 @@ public sealed partial class SettingsViewModel : ObservableObject, INavigationAwa
         CleanTitles = s.CleanTitles;
         MaxRetries = s.MaxRetries;
         SpotifyClientId = s.SpotifyClientId ?? string.Empty;
+        LikedSync = s.SpotifyLikedSync;
+        LikedModeIndex = s.SpotifyLikedSync && s.SpotifyLikedSyncFrom is null ? 1 : 0;
+        LikedFolder = s.SpotifyLikedSyncFolder ?? s.DownloadDirectory;
         SpotifyClientSecret = _settings.GetSpotifyClientSecret() ?? string.Empty;
         IsSpotifyConfigured = _spotify.IsConfigured;
         CheckForToolUpdates = s.CheckForToolUpdates;

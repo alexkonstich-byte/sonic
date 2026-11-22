@@ -39,6 +39,7 @@ public sealed partial class PlaylistDownloadViewModel : ObservableObject
         _recentFolders = s.RecentFolders.ToList();
         _selectedFormat = Options.Find(Options.Formats, s.DefaultFormat);
         _selectedQuality = Options.Find(Options.Qualities, s.DefaultQuality);
+        _numberByPosition = s.NumberPlaylistDownloads;
     }
 
     public IReadOnlyList<Option<AudioFormat>> FormatOptions => Options.Formats;
@@ -55,6 +56,24 @@ public sealed partial class PlaylistDownloadViewModel : ObservableObject
     [ObservableProperty] private IReadOnlyList<string> _recentFolders;
     [ObservableProperty] private Option<AudioFormat> _selectedFormat;
     [ObservableProperty] private Option<AudioQuality> _selectedQuality;
+
+    /// <summary>Name files "01 - Artist - Title" in playlist order.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(NumberingExample))]
+    private bool _numberByPosition;
+
+    public string NumberingExample
+    {
+        get
+        {
+            var template = _settings.Current.FilenameTemplate;
+            return "For example: " + (NumberByPosition ? FileNameHelper.WithNumberPrefix(template, 1) : template)
+                .Replace("{artist}", "Artist").Replace("{title}", "Title") + ".mp3";
+        }
+    }
+
+    partial void OnNumberByPositionChanged(bool value) =>
+        _ = _settings.UpdateAsync(s => s.NumberPlaylistDownloads = value);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanDownload), nameof(IsIdle))]
@@ -176,7 +195,7 @@ public sealed partial class PlaylistDownloadViewModel : ObservableObject
                 Progress = 0;
                 var total = plan.ToDownload.Count;
                 Status = $"Finding songs on YouTube… 0 of {total}";
-                var options = new PlaylistDownloadOptions(SaveToFolder.Trim(), SelectedFormat.Value, SelectedQuality.Value, _settings.Current.FilenameTemplate);
+                var options = new PlaylistDownloadOptions(SaveToFolder.Trim(), SelectedFormat.Value, SelectedQuality.Value, _settings.Current.FilenameTemplate, NumberByPosition);
                 var progress = new Progress<int>(n =>
                 {
                     Progress = 100.0 * n / total;
@@ -194,6 +213,9 @@ public sealed partial class PlaylistDownloadViewModel : ObservableObject
                 var names = string.Join(", ", r.NotFound.Take(5).Select(e => $"{e.Artist} – {e.Title}"));
                 message.Add($"{r.NotFound.Count} not found on YouTube ({names}{(r.NotFound.Count > 5 ? ", …" : string.Empty)}). Use Find source on those rows");
             }
+
+            if (result is { Failed.Count: > 0 } f)
+                message.Add($"{f.Failed.Count} couldn't be searched (check your connection or zapret) — run Download all again to retry them");
 
             _notifications.ShowSuccess($"\"{PlaylistName}\"", string.Join(" · ", message) + ".");
             return true;

@@ -226,6 +226,12 @@ public sealed partial class PlaylistDetailViewModel : ObservableObject, INavigat
     private async Task RefreshFromSpotifyAsync()
     {
         if (ExternalUrl is null) return;
+        if (ExternalUrl == Sonic.Core.Services.LikedSongsSyncService.CollectionUrl)
+        {
+            await App.GetService<LikedSongsService>().SyncAsync(userInitiated: true);
+            return;
+        }
+
         IsBusy = true;
         try
         {

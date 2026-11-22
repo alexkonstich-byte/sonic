@@ -99,6 +99,13 @@ and updates itself. Your library and settings live separately in `%LOCALAPPDATA%
   and checks the length. Songs it finds are linked instead of downloaded again. The rest is searched on YouTube (closest
   length, skipping karaoke/cover/live uploads) and queued into that folder. Songs that weren't found are listed so you
   can use **Find source** on them.
+- **Number files in playlist order:** an option in Download all names files by their position
+  (`01 - Artist - Title.mp3`, the number goes before the file name, not the folders) and queues them in playlist
+  order, so Explorer and players list them like the playlist.
+- **Liked Songs:** sign in with your Spotify account (Settings › Integrations › Spotify; add the shown Redirect URI to
+  your Spotify app) and Sonic checks your Liked Songs every 30 minutes. New likes, or all of them, are found on YouTube
+  and downloaded into the folder you pick; songs you already have are linked. They appear in a "Liked Songs" playlist.
+  Sonic only reads your library.
 - **Match with library** links playlist entries to files you already have. **Refresh from Spotify** picks up changes to
   the playlist.
 

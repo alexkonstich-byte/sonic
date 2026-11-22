@@ -66,6 +66,11 @@ public class SpotifyDownloadTests
         };
 
         public bool IsConfigured => configured;
+        public bool IsSignedIn => false;
+        public string? SignedInUser => null;
+        public Task SignInAsync(Func<Uri, Task> openBrowser, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public Task SignOutAsync() => Task.CompletedTask;
+        public Task<SpotifyLikedSongs> GetLikedSongsAsync(int maxItems = 10000, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task VerifyCredentialsAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task<SpotifyCollection> GetCollectionAsync(string urlOrUri, CancellationToken cancellationToken = default)

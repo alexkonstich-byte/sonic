@@ -16,6 +16,19 @@ public interface ISpotifyService
     Task<SpotifyCollection> GetCollectionAsync(string urlOrUri, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SpotifyTrack>> SearchTracksAsync(string query, int limit, CancellationToken cancellationToken = default);
+
+    /// <summary>True after the user signed in to their own Spotify account (needed for Liked Songs).</summary>
+    bool IsSignedIn { get; }
+
+    string? SignedInUser { get; }
+
+    /// <summary>Signs in through the browser (Authorization Code + PKCE, loopback redirect to Sonic).</summary>
+    Task SignInAsync(Func<Uri, Task> openBrowser, CancellationToken cancellationToken = default);
+
+    Task SignOutAsync();
+
+    /// <summary>The signed-in user's Liked Songs (newest first).</summary>
+    Task<SpotifyLikedSongs> GetLikedSongsAsync(int maxItems = 10_000, CancellationToken cancellationToken = default);
 }
 
 public sealed class SpotifyException(string message, int? statusCode = null) : Exception(message)
