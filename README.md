@@ -91,6 +91,9 @@ and updates itself. Your library and settings live separately in `%LOCALAPPDATA%
 - Create local playlists, add songs from the library, reorder by drag and drop, and export them as M3U.
 - **Import from Spotify:** paste a public playlist or album link to get every song's metadata through the official
   Spotify Web API (your own Client ID and Secret). Spotify audio is never accessed.
+- **Paste and go:** paste a Spotify playlist or album link on Home (Ctrl+V, Paste, or straight into the box) and Sonic
+  downloads it right away: it imports the playlist, skips songs you already have and queues the rest from YouTube with
+  the current audio format and folder. Progress shows on Home, and a summary appears when everything is queued.
 - **Download all:** pick a folder and Sonic scans it, including subfolders, plus your whole library for songs that already
   exist. It matches by tags or "Artist - Title" file names, ignores suffixes like "- Remastered 2011" or "(Radio Edit)",
   and checks the length. Songs it finds are linked instead of downloaded again. The rest is searched on YouTube (closest

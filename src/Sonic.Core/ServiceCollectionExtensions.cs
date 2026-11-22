@@ -53,6 +53,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILibraryService, LibraryService>();
         services.AddSingleton<IPlaylistService, PlaylistService>();
         services.AddSingleton<IPlaylistDownloadService, PlaylistDownloadService>();
+        services.AddSingleton<ISpotifyDownloadService, SpotifyDownloadService>();
         services.AddSingleton<IDownloadPipeline, DownloadPipeline>();
         services.AddSingleton<IDownloadQueueService, DownloadQueueService>();
         return services;

@@ -126,6 +126,12 @@ public sealed partial class HomePage : Page
         }
     }
 
+    private void OnUrlPaste(object sender, TextControlPasteEventArgs e)
+    {
+        // Runs after the pasted text reaches the view model; a pasted Spotify link starts downloading.
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, ViewModel.OnUrlPasted);
+    }
+
     private void OnUrlKeyDown(object sender, KeyRoutedEventArgs e)
     {
         if (e.Key != VirtualKey.Enter) return;

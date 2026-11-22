@@ -100,6 +100,7 @@
                             FontSize="15"
                             InputScope="Url"
                             KeyDown="OnUrlKeyDown"
+                            Paste="OnUrlPaste"
                             PlaceholderText="Paste a link or type to search YouTube"
                             Text="{x:Bind ViewModel.Url, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
@@ -181,7 +182,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Spacing="8">
-                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="Analyzing link…" />
+                            <TextBlock Style="{StaticResource SecondaryTextStyle}" Text="{x:Bind ViewModel.AnalyzingText, Mode=OneWay}" />
                             <ProgressBar IsIndeterminate="True" />
                         </StackPanel>
                         <Button Grid.Column="1" Command="{x:Bind ViewModel.CancelAnalyzeCommand}" Content="Cancel" />

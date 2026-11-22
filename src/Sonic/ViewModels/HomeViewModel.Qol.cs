@@ -53,8 +53,8 @@ public sealed partial class HomeViewModel
         }
     }
 
-    /// <summary>Quick download only makes sense for real links.</summary>
-    public bool CanQuickDownload => HasUrl && !IsSearchQuery && !IsSpotifyUrl;
+    /// <summary>Quick download only makes sense for real links (Spotify links download the whole playlist).</summary>
+    public bool CanQuickDownload => HasUrl && !IsSearchQuery;
 
     private async Task SearchAsync()
     {

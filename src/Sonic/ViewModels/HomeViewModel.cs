@@ -54,6 +54,8 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
     private readonly IDownloadQueueService _queue;
     private readonly ILibraryService _library;
     private readonly IPlaylistService _playlists;
+    private readonly ISpotifyService _spotify;
+    private readonly ISpotifyDownloadService _spotifyDownloads;
     private readonly ISettingsService _settings;
     private readonly INavigationService _navigation;
     private readonly IDialogService _dialogs;
@@ -68,6 +70,8 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
         IDownloadQueueService queue,
         ILibraryService library,
         IPlaylistService playlists,
+        ISpotifyService spotify,
+        ISpotifyDownloadService spotifyDownloads,
         ISettingsService settings,
         INavigationService navigation,
         IDialogService dialogs,
@@ -82,6 +86,8 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
         _queue = queue;
         _library = library;
         _playlists = playlists;
+        _spotify = spotify;
+        _spotifyDownloads = spotifyDownloads;
         _settings = settings;
         _navigation = navigation;
         _dialogs = dialogs;
@@ -140,6 +146,11 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(AnalyzeCommand))]
     private bool _isAnalyzing;
+
+    /// <summary>What the progress row says while busy ("Analyzing link…", "Finding songs on YouTube… 3 of 40").</summary>
+    [ObservableProperty] private string _analyzingText = AnalyzingLinkText;
+
+    private const string AnalyzingLinkText = "Analyzing link…";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasAnalysis), nameof(IsSingleItem), nameof(IsPlaylist), nameof(AnalysisTitle), nameof(AnalysisSubtitle),
@@ -376,7 +387,7 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
 
     public bool HasUrl => !string.IsNullOrWhiteSpace(Url);
     public bool IsSpotifyUrl => DetectedSource == SourcePlatform.Spotify;
-    public string AnalyzeButtonText => IsSpotifyUrl ? "Import playlist" : IsSearchQuery ? "Search" : "Analyze";
+    public string AnalyzeButtonText => IsSpotifyUrl ? "Download playlist" : IsSearchQuery ? "Search" : "Analyze";
     public string SourceName => HasUrl ? SourceDetector.GetDisplayName(DetectedSource) : string.Empty;
     public string SourceGlyph => Glyphs.ForSource(DetectedSource);
 
@@ -456,7 +467,7 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
 
             var text = (await content.GetTextAsync()).Trim();
             Url = text;
-            if (SourceDetector.TryNormalizeUrl(text, out _) && !IsSpotifyUrl) await AnalyzeAsync();
+            if (SourceDetector.TryNormalizeUrl(text, out _)) await AnalyzeAsync();
         }
         catch (Exception ex)
         {
@@ -484,8 +495,7 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
 
         if (IsSpotifyUrl)
         {
-            var id = await _dialogs.ImportSpotifyAsync(uri.AbsoluteUri);
-            if (id is { } playlistId) _navigation.NavigateTo(PageKey.PlaylistDetail, playlistId);
+            await DownloadSpotifyAsync(uri.AbsoluteUri);
             return;
         }
 
@@ -560,6 +570,111 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
     {
         _analyzeCts?.Cancel();
         IsAnalyzing = false;
+        AnalyzingText = AnalyzingLinkText;
+    }
+
+    /// <summary>A Spotify link typed or pasted into the box starts downloading right away.</summary>
+    public void OnUrlPasted()
+    {
+        if (IsSpotifyUrl && AnalyzeCommand.CanExecute(null)) AnalyzeCommand.Execute(null);
+    }
+
+    /// <summary>
+    /// Spotify playlist or album link: import it as a playlist, link songs that are already on disk and queue the rest
+    /// from YouTube with the current audio options — no dialogs.
+    /// </summary>
+    private async Task DownloadSpotifyAsync(string url)
+    {
+        if (!_spotify.IsConfigured)
+        {
+            // The import dialog explains how to add the Spotify Client ID and Secret.
+            var id = await _dialogs.ImportSpotifyAsync(url);
+            if (id is { } playlistId) _navigation.NavigateTo(PageKey.PlaylistDetail, playlistId);
+            return;
+        }
+
+        // Spotify songs are always audio; in Video mode the audio defaults from Settings are used.
+        var folder = IsVideoMode ? _settings.Current.DownloadDirectory : SaveToFolder.Trim();
+        var template = IsVideoMode ? _settings.Current.FilenameTemplate : FilenameTemplate;
+        if (FileNameHelper.ValidateTemplate(template, MediaKind.Audio) is { } templateError)
+        {
+            await _dialogs.ShowErrorAsync("Check the file name", templateError);
+            return;
+        }
+
+        if (FileNameHelper.ValidateDirectory(folder) is { } folderError)
+        {
+            await _dialogs.ShowErrorAsync("Check the folder", folderError);
+            return;
+        }
+
+        var options = new PlaylistDownloadOptions(
+            folder,
+            IsVideoMode ? _settings.Current.DefaultFormat : SelectedFormat.Value,
+            IsVideoMode ? _settings.Current.DefaultQuality : SelectedQuality.Value,
+            template);
+
+        _analyzeCts?.Cancel();
+        _analyzeCts = new CancellationTokenSource();
+        var token = _analyzeCts.Token;
+        IsAnalyzing = true;
+        AnalyzingText = "Loading the playlist from Spotify…";
+        AnalysisError = null;
+        Analysis = null;
+        PreviousDownload = null;
+        ClearSearch();
+        SourceFormats.Clear();
+        PlaylistItems.Clear();
+        try
+        {
+            var progress = new Progress<string>(s =>
+            {
+                if (!token.IsCancellationRequested) AnalyzingText = s;
+            });
+            var r = await Task.Run(() => _spotifyDownloads.DownloadAsync(url, options, progress, token), token);
+            if (token.IsCancellationRequested) return;
+            Url = string.Empty;
+
+            var have = r.InLibrary + r.Linked;
+            var parts = new List<string>();
+            if (r.Queued > 0) parts.Add($"{Format.Count(r.Queued, "song")} queued");
+            if (have > 0) parts.Add($"{have} already downloaded");
+            if (r.AlreadyQueued > 0) parts.Add($"{r.AlreadyQueued} already in the queue");
+            if (r.NotFound.Count > 0)
+            {
+                var names = string.Join(", ", r.NotFound.Take(3).Select(e => $"{e.Artist} – {e.Title}"));
+                parts.Add($"{r.NotFound.Count} not found on YouTube ({names}{(r.NotFound.Count > 3 ? ", …" : string.Empty)}). Open the playlist and use Find source on those");
+            }
+
+            var title = $"\"{r.Playlist.Name}\"";
+            if (r.Queued == 0 && r.NotFound.Count == 0)
+                _notifications.ShowInfo(title, $"Nothing new to download: {string.Join(" · ", parts)}.");
+            else if (r.Queued == 0)
+                _notifications.ShowWarning(title, string.Join(" · ", parts) + ".");
+            else
+                _notifications.ShowSuccess(title, string.Join(" · ", parts) + ".");
+        }
+        catch (OperationCanceledException)
+        {
+            _notifications.ShowInfo("Stopped", "Songs found so far stay in the download queue.");
+        }
+        catch (SpotifyException ex)
+        {
+            AnalysisError = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Spotify download failed");
+            AnalysisError = "Something went wrong while downloading the playlist: " + ex.Message;
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+            {
+                IsAnalyzing = false;
+                AnalyzingText = AnalyzingLinkText;
+            }
+        }
     }
 
     [RelayCommand]
