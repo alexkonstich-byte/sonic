@@ -166,13 +166,21 @@
                                 </SelectorBarItem.Icon>
                             </SelectorBarItem>
                         </SelectorBar>
-                        <TextBlock
-                            Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Style="{StaticResource SecondaryTextStyle}"
-                            Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.SourceName), Mode=OneWay}">
-                            <Run Text="{x:Bind ViewModel.SourceName, Mode=OneWay}" /><Run Text=" link detected" />
-                        </TextBlock>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Style="{StaticResource SecondaryTextStyle}"
+                                Visibility="{x:Bind helpers:Bind.VisibleIfText(ViewModel.SourceName), Mode=OneWay}">
+                                <Run Text="{x:Bind ViewModel.SourceName, Mode=OneWay}" /><Run Text=" link detected" />
+                            </TextBlock>
+                            <CheckBox
+                                MinWidth="0"
+                                VerticalAlignment="Center"
+                                Content="Number files in playlist order"
+                                IsChecked="{x:Bind ViewModel.NumberPlaylistFiles, Mode=TwoWay}"
+                                ToolTipService.ToolTip="Songs are queued in playlist order and saved as &quot;01 - Artist - Title&quot;."
+                                Visibility="{x:Bind ViewModel.IsSpotifyUrl, Mode=OneWay}" />
+                        </StackPanel>
                     </Grid>
 
                     <!-- Analyzing -->

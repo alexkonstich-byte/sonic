@@ -387,6 +387,21 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
 
     public bool HasUrl => !string.IsNullOrWhiteSpace(Url);
     public bool IsSpotifyUrl => DetectedSource == SourcePlatform.Spotify;
+
+    /// <summary>Spotify playlists: name files "01 - Artist - Title" in playlist order (shared with Download all).</summary>
+    public bool NumberPlaylistFiles
+    {
+        get => _numberPlaylistFiles ??= _settings.Current.NumberPlaylistDownloads;
+        set
+        {
+            if (value == NumberPlaylistFiles) return;
+            _numberPlaylistFiles = value;
+            _ = _settings.UpdateAsync(s => s.NumberPlaylistDownloads = value);
+            OnPropertyChanged();
+        }
+    }
+
+    private bool? _numberPlaylistFiles;
     public string AnalyzeButtonText => IsSpotifyUrl ? "Download playlist" : IsSearchQuery ? "Search" : "Analyze";
     public string SourceName => HasUrl ? SourceDetector.GetDisplayName(DetectedSource) : string.Empty;
     public string SourceGlyph => Glyphs.ForSource(DetectedSource);
@@ -613,7 +628,7 @@ public sealed partial class HomeViewModel : ObservableObject, INavigationAware
             IsVideoMode ? _settings.Current.DefaultFormat : SelectedFormat.Value,
             IsVideoMode ? _settings.Current.DefaultQuality : SelectedQuality.Value,
             template,
-            _settings.Current.NumberPlaylistDownloads);
+            NumberPlaylistFiles);
 
         _analyzeCts?.Cancel();
         _analyzeCts = new CancellationTokenSource();

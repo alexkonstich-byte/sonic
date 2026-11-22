@@ -76,9 +76,14 @@ public sealed partial class SpotifyService(
         return list;
     }
 
+    internal const string SignInForPlaylists =
+        "Spotify now shares a playlist's songs only with signed-in users. Sign in with your Spotify account in Settings › Integrations › Spotify, then try again.";
+
     private async Task<SpotifyCollection> GetPlaylistAsync(string id, CancellationToken ct)
     {
-        using var doc = await GetJsonAsync($"playlists/{id}", ct).ConfigureAwait(false);
+        // Spotify only returns a playlist's songs to a signed-in user; app credentials get the name and cover only.
+        var user = IsSignedIn;
+        using var doc = await GetJsonAsync($"playlists/{id}", ct, user: user).ConfigureAwait(false);
         var root = doc.RootElement;
         var tracks = new List<SpotifyTrack>();
         var skipped = 0;
@@ -87,13 +92,36 @@ public sealed partial class SpotifyService(
         JsonElement page = default;
         var hasPage = (root.TryGetProperty("items", out page) && page.ValueKind == JsonValueKind.Object)
                       || (root.TryGetProperty("tracks", out page) && page.ValueKind == JsonValueKind.Object);
-        string? next = null;
-        if (hasPage) next = ReadPlaylistPage(page, tracks, ref skipped);
+        string? next;
+        if (hasPage)
+        {
+            next = ReadPlaylistPage(page, tracks, ref skipped);
+        }
+        else if (!user)
+        {
+            throw new SpotifyException(SignInForPlaylists, 401);
+        }
+        else
+        {
+            // Songs left out of the playlist object: read them from the items endpoint.
+            next = $"playlists/{id}/items?limit=50";
+        }
 
         while (next is not null && tracks.Count < MaxItems)
         {
-            using var nextDoc = await GetJsonAsync(next, ct).ConfigureAwait(false);
-            next = ReadPlaylistPage(nextDoc.RootElement, tracks, ref skipped);
+            JsonDocument nextDoc;
+            try
+            {
+                nextDoc = await GetJsonAsync(next, ct, user: user).ConfigureAwait(false);
+            }
+            catch (SpotifyException ex) when (ex.StatusCode is 401 or 403 && tracks.Count == 0)
+            {
+                throw new SpotifyException(
+                    "Spotify didn't share the songs of this playlist with Sonic. It may only do that for playlists you created or collaborate on: " +
+                    "in Spotify, add the songs to a playlist of your own and paste that link.", ex.StatusCode);
+            }
+
+            using (nextDoc) next = ReadPlaylistPage(nextDoc.RootElement, tracks, ref skipped);
         }
 
         return new SpotifyCollection
@@ -270,6 +298,12 @@ public sealed partial class SpotifyService(
             {
                 var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 logger.LogWarning("Spotify {Status} for {Url}: {Body}", (int)response.StatusCode, url, body);
+                if (body.Contains("unavailable in this country", StringComparison.OrdinalIgnoreCase))
+                    throw new SpotifyException(
+                        "Spotify refuses requests from your country. Turn on a VPN, or set a proxy in Settings › Network, and try again. (zapret doesn't help here.)",
+                        (int)response.StatusCode);
+                if (response.StatusCode == HttpStatusCode.Unauthorized && !user)
+                    throw new SpotifyException(SignInForPlaylists, 401);
                 throw response.StatusCode switch
                 {
                     HttpStatusCode.NotFound => new SpotifyException(

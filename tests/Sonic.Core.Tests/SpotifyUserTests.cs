@@ -73,6 +73,30 @@ public sealed class SpotifyUserTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Playlist_songs_need_a_signed_in_user_and_come_from_the_items_endpoint()
+    {
+        var settings = _sp.GetRequiredService<ISettingsService>();
+        await settings.SetSpotifyCredentialsAsync("test-client", "secret");
+        var spotify = _sp.GetRequiredService<ISpotifyService>();
+
+        // App credentials only: Spotify returns the playlist without its songs.
+        var ex = await Assert.ThrowsAsync<SpotifyException>(() => spotify.GetCollectionAsync("https://open.spotify.com/playlist/3Vse16tpsoaQcDdCI2cCJI"));
+        Assert.Contains("Sign in", ex.Message);
+
+        await spotify.SignInAsync(authorize =>
+        {
+            var query = authorize.Query.TrimStart('?').Split('&').Select(p => p.Split('=', 2)).ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]));
+            _fake.ExpectedChallengeFrom = query["code_challenge"];
+            _ = Task.Run(() => new HttpClient().GetStringAsync($"{SpotifyService.RedirectUri}?code=the-code&state={query["state"]}"));
+            return Task.CompletedTask;
+        });
+
+        var playlist = await spotify.GetCollectionAsync("https://open.spotify.com/playlist/3Vse16tpsoaQcDdCI2cCJI");
+        Assert.Equal("1985", playlist.Name);
+        Assert.Equal(["Song A"], playlist.Tracks.Select(t => t.Name));
+    }
+
+    [Fact]
     public async Task A_silent_preconnect_socket_does_not_abort_the_sign_in()
     {
         SpotifyService.ConnectionReadTimeout = TimeSpan.FromMilliseconds(300);
@@ -148,6 +172,11 @@ public sealed class SpotifyUserTests : IAsyncLifetime
             Assert.Equal("Bearer AT", request.Headers.Authorization?.ToString());
             return url switch
             {
+                "https://api.spotify.com/v1/playlists/3Vse16tpsoaQcDdCI2cCJI" => Json("""{"id":"3Vse16tpsoaQcDdCI2cCJI","name":"1985","owner":{"id":"o"},"images":[]}"""),
+                "https://api.spotify.com/v1/playlists/3Vse16tpsoaQcDdCI2cCJI/items?limit=50" => Json("""
+                    {"total":1,"next":null,"items":[
+                      {"added_at":"2026-11-18T10:00:00Z","item":{"type":"track","id":"a","name":"Song A","duration_ms":200000,"artists":[{"name":"Artist A"}],"album":{"name":"Album A","images":[]}}}]}
+                    """),
                 "https://api.spotify.com/v1/me" => Json("""{"id":"u1","display_name":"Tester"}"""),
                 "https://api.spotify.com/v1/me/tracks?limit=50" => Json("""
                     {"total":3,"next":"https://api.spotify.com/v1/me/tracks?offset=2&limit=50","items":[
